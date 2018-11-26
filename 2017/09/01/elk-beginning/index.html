@@ -103,7 +103,7 @@
 
 
   <meta name="description" content="由于每天有过亿级的nginx日志需要做实时采集分析，需要使用一套能撑住压力的实时数据采集分析系统。用户访问web服务器使用了openresty，在每台openresty服务器上使用filebeat实时收集产生的nginx日志，发送到kafka集群作为持久化缓冲队列。后面再使用多个logstash从kafka中取出数据，并对数据进行转换处理，发送到elasticsearch集群中。最后使用了gra">
-<meta name="keywords" content="openresty,elasticsearch,kafka,filebeat,logstash,grafana">
+<meta name="keywords" content="elasticsearch,openresty,kafka,filebeat,logstash,grafana">
 <meta property="og:type" content="article">
 <meta property="og:title" content="实时日志分析之一：总体说明">
 <meta property="og:url" content="http://blog.08050142.com/2017/09/01/elk-beginning/index.html">
@@ -522,9 +522,9 @@
       
         <div class="post-tags">
           
-            <a href="/tags/openresty/" rel="tag"># openresty</a>
-          
             <a href="/tags/elasticsearch/" rel="tag"># elasticsearch</a>
+          
+            <a href="/tags/openresty/" rel="tag"># openresty</a>
           
             <a href="/tags/kafka/" rel="tag"># kafka</a>
           
