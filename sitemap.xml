@@ -2,9 +2,16 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://blog.08050142.com/2016/10/21/celery/</loc>
+    
+    <lastmod>2018-12-18T12:40:57.980Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://blog.08050142.com/2018/12/15/ngx-http-proxy-module/</loc>
     
-    <lastmod>2018-12-18T12:40:17.731Z</lastmod>
+    <lastmod>2018-12-18T12:40:26.565Z</lastmod>
     
   </url>
   
@@ -19,13 +26,6 @@
     <loc>http://blog.08050142.com/2017/09/04/elk-kafka/</loc>
     
     <lastmod>2018-10-08T09:36:44.736Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://blog.08050142.com/2016/10/21/celery/</loc>
-    
-    <lastmod>2018-09-26T08:20:22.925Z</lastmod>
     
   </url>
   
