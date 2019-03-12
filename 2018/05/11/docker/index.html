@@ -55,16 +55,16 @@
 <link href="/css/main.css?v=6.2.0" rel="stylesheet" type="text/css" />
 
 
-  <link rel="apple-touch-icon" sizes="180x180" href="http://qiniu.08050142.com/monkey.ico?v=6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="http://minkedong.com/images/monkey.ico?v=6.2.0">
 
 
-  <link rel="icon" type="image/png" sizes="32x32" href="http://qiniu.08050142.com/monkey.ico?v=6.2.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="http://minkedong.com/images/monkey.ico?v=6.2.0">
 
 
-  <link rel="icon" type="image/png" sizes="16x16" href="http://qiniu.08050142.com/monkey.ico?v=6.2.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="http://minkedong.com/images/monkey.ico?v=6.2.0">
 
 
-  <link rel="mask-icon" href="http://qiniu.08050142.com/monkey.ico?v=6.2.0" color="#222">
+  <link rel="mask-icon" href="http://minkedong.com/images/monkey.ico?v=6.2.0" color="#222">
 
 
 
@@ -110,13 +110,13 @@
 <meta property="og:site_name" content="minkedong&#39;s  home">
 <meta property="og:description" content="在业务逐渐变大后，系统维护工作需要投入越来越多的精力，于是开始了docker化改造。期间也遇到了一些实际问题，总结了一些经验，希望对已在生产环境中使用docker或者正在准备进行服务docker化改造的童鞋有所帮助！">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="http://qiniu.08050142.com/blog_docker_why.png">
-<meta property="og:image" content="http://qiniu.08050142.com/blog_docker.png">
-<meta property="og:updated_time" content="2018-09-26T08:20:20.468Z">
+<meta property="og:image" content="http://minkedong.com/images/blog_docker_why.png">
+<meta property="og:image" content="http://minkedong.com/images/blog_docker.png">
+<meta property="og:updated_time" content="2019-03-12T02:45:07.995Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="业务docker化改造">
 <meta name="twitter:description" content="在业务逐渐变大后，系统维护工作需要投入越来越多的精力，于是开始了docker化改造。期间也遇到了一些实际问题，总结了一些经验，希望对已在生产环境中使用docker或者正在准备进行服务docker化改造的童鞋有所帮助！">
-<meta name="twitter:image" content="http://qiniu.08050142.com/blog_docker_why.png">
+<meta name="twitter:image" content="http://minkedong.com/images/blog_docker_why.png">
 
 
 
@@ -310,7 +310,7 @@
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="minkedong">
       <meta itemprop="description" content="">
-      <meta itemprop="image" content="http://qiniu.08050142.com/houseilei.jpg">
+      <meta itemprop="image" content="http://minkedong.com/images/houseilei.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
@@ -364,7 +364,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2018-09-26 16:20:20" itemprop="dateModified" datetime="2018-09-26T16:20:20+08:00">2018-09-26</time>
+                <time title="修改时间：2019-03-12 10:45:07" itemprop="dateModified" datetime="2019-03-12T10:45:07+08:00">2019-03-12</time>
               
             
           </span>
@@ -437,7 +437,7 @@
 <p>在业务逐渐变大后，系统维护工作需要投入越来越多的精力，于是开始了docker化改造。期间也遇到了一些实际问题，总结了一些经验，希望对已在生产环境中使用docker或者正在准备进行服务docker化改造的童鞋有所帮助！</p>
 </blockquote>
 <a id="more"></a>
-<h2 id="为什么docker化"><a href="#为什么docker化" class="headerlink" title="为什么docker化"></a>为什么docker化</h2><p><img src="http://qiniu.08050142.com/blog_docker_why.png" alt="mahua"></p>
+<h2 id="为什么docker化"><a href="#为什么docker化" class="headerlink" title="为什么docker化"></a>为什么docker化</h2><p><img src="http://minkedong.com/images/blog_docker_why.png" alt="mahua"></p>
 <ul>
 <li>开发过程中一个常见的问题是环境一致性问题。由于开发环境、测试环境、生产环境不一致，导致有些 bug 并未在开发过程中被发现。而 Docker 的镜像提供了除内核外完整的运行时环境，确保了应用运行环境一致性，从而不会再出现 「这段代码在我机器上没问题啊」 这类问题。</li>
 <li>对开发和运维（DevOps）人员来说，最希望的就是一次创建或配置，可以在任意地方正常运行。使用docker的镜像，完成一次build，轻松部署。</li>
@@ -481,7 +481,7 @@
 <li>Portainer是Docker的图形化管理工具。</li>
 <li>提供状态显示面板、应用模板快速部署、容器镜像网络数据卷的基本操作（包括上传下载镜像，创建容器等操作）、事件日志显示、容器控制台操作、Swarm集群和服务等集中管理和操作、登录用户管理和控制等功能。</li>
 </ul>
-<h2 id="业务Docker化改造图"><a href="#业务Docker化改造图" class="headerlink" title="业务Docker化改造图"></a>业务Docker化改造图</h2><p><img src="http://qiniu.08050142.com/blog_docker.png" alt="mahua"></p>
+<h2 id="业务Docker化改造图"><a href="#业务Docker化改造图" class="headerlink" title="业务Docker化改造图"></a>业务Docker化改造图</h2><p><img src="http://minkedong.com/images/blog_docker.png" alt="mahua"></p>
 <p><strong> 说明 </strong></p>
 <ul>
 <li>首先要说明的是，我们只是进行了部分核心业务的docker化改造。</li>
@@ -525,14 +525,14 @@
 
     
       <div id="wechat" style="display: inline-block">
-        <img id="wechat_qr" src="http://qiniu.08050142.com/qrcode_wechat_14708854571033645.png" alt="minkedong 微信支付"/>
+        <img id="wechat_qr" src="http://minkedong.com/images/qrcode_wechat_14708854571033645.png" alt="minkedong 微信支付"/>
         <p>微信支付</p>
       </div>
     
 
     
       <div id="alipay" style="display: inline-block">
-        <img id="alipay_qr" src="http://qiniu.08050142.com/qrcode_alipay_14708867141033645.png" alt="minkedong 支付宝"/>
+        <img id="alipay_qr" src="http://minkedong.com/images/qrcode_alipay_14708867141033645.png" alt="minkedong 支付宝"/>
         <p>支付宝</p>
       </div>
     
@@ -649,7 +649,7 @@
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
               <img class="site-author-image" itemprop="image"
-                src="http://qiniu.08050142.com/houseilei.jpg"
+                src="http://minkedong.com/images/houseilei.jpg"
                 alt="minkedong" />
             
               <p class="site-author-name" itemprop="name">minkedong</p>

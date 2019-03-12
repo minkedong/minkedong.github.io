@@ -55,16 +55,16 @@
 <link href="/css/main.css?v=6.2.0" rel="stylesheet" type="text/css" />
 
 
-  <link rel="apple-touch-icon" sizes="180x180" href="http://qiniu.08050142.com/monkey.ico?v=6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="http://minkedong.com/images/monkey.ico?v=6.2.0">
 
 
-  <link rel="icon" type="image/png" sizes="32x32" href="http://qiniu.08050142.com/monkey.ico?v=6.2.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="http://minkedong.com/images/monkey.ico?v=6.2.0">
 
 
-  <link rel="icon" type="image/png" sizes="16x16" href="http://qiniu.08050142.com/monkey.ico?v=6.2.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="http://minkedong.com/images/monkey.ico?v=6.2.0">
 
 
-  <link rel="mask-icon" href="http://qiniu.08050142.com/monkey.ico?v=6.2.0" color="#222">
+  <link rel="mask-icon" href="http://minkedong.com/images/monkey.ico?v=6.2.0" color="#222">
 
 
 
@@ -110,12 +110,12 @@
 <meta property="og:site_name" content="minkedong&#39;s  home">
 <meta property="og:description" content="redis sentinel 可以实现对redis的监控、通知、自动故障转移，支持分布式。项目中使用此工具来解决redis单点问题，特此记录测试流程，如有问题，大家共同讨论！">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="http://qiniu.08050142.com/redis-sentinel1.jpeg">
-<meta property="og:updated_time" content="2018-09-26T08:20:15.077Z">
+<meta property="og:image" content="http://minkedong.com/images/redis-sentinel1.jpeg">
+<meta property="og:updated_time" content="2019-03-12T02:50:33.318Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="redis sentinel配置及使用说明">
 <meta name="twitter:description" content="redis sentinel 可以实现对redis的监控、通知、自动故障转移，支持分布式。项目中使用此工具来解决redis单点问题，特此记录测试流程，如有问题，大家共同讨论！">
-<meta name="twitter:image" content="http://qiniu.08050142.com/redis-sentinel1.jpeg">
+<meta name="twitter:image" content="http://minkedong.com/images/redis-sentinel1.jpeg">
 
 
 
@@ -309,7 +309,7 @@
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="minkedong">
       <meta itemprop="description" content="">
-      <meta itemprop="image" content="http://qiniu.08050142.com/houseilei.jpg">
+      <meta itemprop="image" content="http://minkedong.com/images/houseilei.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
@@ -363,7 +363,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2018-09-26 16:20:15" itemprop="dateModified" datetime="2018-09-26T16:20:15+08:00">2018-09-26</time>
+                <time title="修改时间：2019-03-12 10:50:33" itemprop="dateModified" datetime="2019-03-12T10:50:33+08:00">2019-03-12</time>
               
             
           </span>
@@ -450,7 +450,7 @@
 <li>python 2.7</li>
 <li>redis-py 2.10.5</li>
 </ul>
-<h2 id="初始配置图解"><a href="#初始配置图解" class="headerlink" title="初始配置图解"></a>初始配置图解</h2><p><img src="http://qiniu.08050142.com/redis-sentinel1.jpeg" alt="mahua"></p>
+<h2 id="初始配置图解"><a href="#初始配置图解" class="headerlink" title="初始配置图解"></a>初始配置图解</h2><p><img src="http://minkedong.com/images/redis-sentinel1.jpeg" alt="mahua"></p>
 <p>说明：<br>(1). redis主服务在192.168.2.230服务器上，其他服务器均配置为其redis从服务器<br>(2). sentinel配置了3个服务（可以配置3个以上），均监控redis master服务<br>(3). 要保证三台服务器之间端口”6379”、”26379”均能正常通信<br>(4). 由于业务需求，192.168.2.233 redis slave节点不作为备用master节点，通过配置其slave-priority为0实现(在redis master挂掉以后，sentinel会根据slave-priority配置值的大小推荐哪个redis从节点作为master，此值越小则优先被推荐为master节点。且此值如果为0，则不会被推荐。默认值为100)</p>
 <h2 id="配置启动redis服务"><a href="#配置启动redis服务" class="headerlink" title="配置启动redis服务"></a>配置启动redis服务</h2><p>(1). 各个机器分别安装redis（自带sentinel）<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo yum install redis</span><br></pre></td></tr></table></figure></p>
 <p>(2). 192.168.2.230服务器上redis master修改如下配置(/etc/redis.conf)<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">bind</span> 192.168.2.230 127.0.0.1</span><br><span class="line">requirepass changeme</span><br><span class="line">masterauth changeme   <span class="comment"># redis master也可能成为从节点，此配置也是要的</span></span><br></pre></td></tr></table></figure></p>
@@ -498,14 +498,14 @@
 
     
       <div id="wechat" style="display: inline-block">
-        <img id="wechat_qr" src="http://qiniu.08050142.com/qrcode_wechat_14708854571033645.png" alt="minkedong 微信支付"/>
+        <img id="wechat_qr" src="http://minkedong.com/images/qrcode_wechat_14708854571033645.png" alt="minkedong 微信支付"/>
         <p>微信支付</p>
       </div>
     
 
     
       <div id="alipay" style="display: inline-block">
-        <img id="alipay_qr" src="http://qiniu.08050142.com/qrcode_alipay_14708867141033645.png" alt="minkedong 支付宝"/>
+        <img id="alipay_qr" src="http://minkedong.com/images/qrcode_alipay_14708867141033645.png" alt="minkedong 支付宝"/>
         <p>支付宝</p>
       </div>
     
@@ -620,7 +620,7 @@
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
               <img class="site-author-image" itemprop="image"
-                src="http://qiniu.08050142.com/houseilei.jpg"
+                src="http://minkedong.com/images/houseilei.jpg"
                 alt="minkedong" />
             
               <p class="site-author-name" itemprop="name">minkedong</p>
