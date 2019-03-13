@@ -110,7 +110,7 @@
 <meta property="og:site_name" content="minkedong&#39;s  home">
 <meta property="og:description" content="Elasticsearch是一个基于Lucene的搜索服务器。一个分布式的实时文档存储，每个字段 可以被索引与搜索，一个分布式实时分析搜索引擎能胜任上百个服务节点的扩展，并支持 PB 级别的结构化或者非结构化数据。官方文档：https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html中文文档：https://">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2018-05-10T11:08:19.181Z">
+<meta property="og:updated_time" content="2019-03-13T14:28:55.858Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="实时日志分析之五：Elasticsearch">
 <meta name="twitter:description" content="Elasticsearch是一个基于Lucene的搜索服务器。一个分布式的实时文档存储，每个字段 可以被索引与搜索，一个分布式实时分析搜索引擎能胜任上百个服务节点的扩展，并支持 PB 级别的结构化或者非结构化数据。官方文档：https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html中文文档：https://">
@@ -361,7 +361,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2018-05-10 19:08:19" itemprop="dateModified" datetime="2018-05-10T19:08:19+08:00">2018-05-10</time>
+                <time title="修改时间：2019-03-13 22:28:55" itemprop="dateModified" datetime="2019-03-13T22:28:55+08:00">2019-03-13</time>
               
             
           </span>
@@ -440,8 +440,8 @@
 <li>ip：192.168.2.235</li>
 <li>ip：192.168.2.236</li>
 </ul>
-<h2 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h2><p><strong> 优化linux内核参数 </strong><br>参考文章 <a href="http://blog.08050142.com/2017/09/01/elk-openresty/">实时日志分析之二：Openresty</a> 其中的“优化linux内核参数”部分<br>备注：<br>sudo vim /etc/security/limits.conf 加入内容的时候，多加入下面的内容：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># elasticsearch memlock setting</span></span><br><span class="line">elasticsearch soft memlock unlimited</span><br><span class="line">elasticsearch hard memlock unlimited</span><br></pre></td></tr></table></figure></p>
-<p><strong> 安装JDK </strong><br>参考文章 <a href="http://blog.08050142.com/2017/09/04/elk-kafka/">实时日志分析之三：Kafka</a> 其中的“安装JDK”部分</p>
+<h2 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h2><p><strong> 优化linux内核参数 </strong><br>参考文章 <a href="http://blog.minkedong.com/2017/09/01/elk-openresty/" target="_blank" rel="noopener">实时日志分析之二：Openresty</a> 其中的“优化linux内核参数”部分<br>备注：<br>sudo vim /etc/security/limits.conf 加入内容的时候，多加入下面的内容：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># elasticsearch memlock setting</span></span><br><span class="line">elasticsearch soft memlock unlimited</span><br><span class="line">elasticsearch hard memlock unlimited</span><br></pre></td></tr></table></figure></p>
+<p><strong> 安装JDK </strong><br>参考文章 <a href="http://blog.minkedong.com/2017/09/04/elk-kafka/" target="_blank" rel="noopener">实时日志分析之三：Kafka</a> 其中的“安装JDK”部分</p>
 <p><strong> 设置host </strong><br>在服务器192.168.2.234上运行<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo hostnamectl <span class="built_in">set</span>-hostname elasticsearch01</span><br></pre></td></tr></table></figure></p>
 <p>在服务器192.168.2.235上运行<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo hostnamectl <span class="built_in">set</span>-hostname elasticsearch02</span><br></pre></td></tr></table></figure></p>
 <p>在服务器192.168.2.236上运行<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo hostnamectl <span class="built_in">set</span>-hostname elasticsearch03</span><br></pre></td></tr></table></figure></p>

@@ -115,7 +115,7 @@
 <meta property="og:image" content="http://minkedong.com/images/companys.jpg">
 <meta property="og:image" content="http://minkedong.com/images/ngx_lua_module.png">
 <meta property="og:image" content="http://minkedong.com/images/demotime.jpg">
-<meta property="og:updated_time" content="2019-03-12T02:50:12.054Z">
+<meta property="og:updated_time" content="2019-03-13T14:29:25.077Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="OpenResty在高并发场景的应用">
 <meta name="twitter:description" content="在面对大量用户访问、高并发请求方面，基本的解决方案集中在这样几个环节：使用高性能的服务器、高性能的数据库、高效率的编程语言、还有高性能的Web容器、负载均衡等等今天我们就要介绍一种解决高并发场景的方案：Openresty">
@@ -367,7 +367,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-03-12 10:50:12" itemprop="dateModified" datetime="2019-03-12T10:50:12+08:00">2019-03-12</time>
+                <time title="修改时间：2019-03-13 22:29:25" itemprop="dateModified" datetime="2019-03-13T22:29:25+08:00">2019-03-13</time>
               
             
           </span>
@@ -491,7 +491,7 @@
 <p><strong>step10：内部调用</strong><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step10</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure></p>
 <p><strong>step11：lua-resty-redis库</strong><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step11</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure></p>
 <p><strong>step12：ab测试</strong><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step12</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure></p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><strong>ab测试：</strong><br>1.准备：<br>更改内核参数，参考文章 <a href="http://blog.08050142.com/2017/09/01/elk-openresty/">实时日志分析之二：Openresty</a> 其中的“优化linux内核参数”部分<br>log日志加buffer，人为错误日志去掉（由于其不带写缓冲）</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><strong>ab测试：</strong><br>1.准备：<br>更改内核参数，参考文章 <a href="http://blog.minkedong.com/2017/09/01/elk-openresty/" target="_blank" rel="noopener">实时日志分析之二：Openresty</a> 其中的“优化linux内核参数”部分<br>log日志加buffer，人为错误日志去掉（由于其不带写缓冲）</p>
 <p>2.说明：<br>吞吐率（Requests per second）<br>用户平均请求等待时间（Time per request）= 处理完成所有请求数所花费的时间/（总请求数/并发用户数）<br>服务器平均请求等待时间（Time per request:across all concurrent requests）= 处理完成所有请求数所花费的时间/总请求数</p>
 <p>3.执行：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ab -c 500 -n 10000 -k http://192.168.50.100/hello</span><br><span class="line">ab -c 1000 -n 10000 -k http://192.168.50.100/hello</span><br><span class="line">ab -c 500 -n 10000 -k http://192.168.50.100/redis</span><br><span class="line">ab -c 1000 -n 10000 -k http://192.168.50.100/redis</span><br><span class="line">ab -c 500 -n 10000 -k http://192.168.50.100/test1</span><br><span class="line">ab -c 1000 -n 10000 -k http://192.168.50.100/test1</span><br></pre></td></tr></table></figure></p>
 <p><strong>建议</strong></p>
