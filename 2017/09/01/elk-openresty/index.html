@@ -55,16 +55,16 @@
 <link href="/css/main.css?v=6.2.0" rel="stylesheet" type="text/css" />
 
 
-  <link rel="apple-touch-icon" sizes="180x180" href="http://minkedong.com/images/monkey.ico?v=6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="http://qiniu.wxjcart.com/monkey.ico?v=6.2.0">
 
 
-  <link rel="icon" type="image/png" sizes="32x32" href="http://minkedong.com/images/monkey.ico?v=6.2.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="http://qiniu.wxjcart.com/monkey.ico?v=6.2.0">
 
 
-  <link rel="icon" type="image/png" sizes="16x16" href="http://minkedong.com/images/monkey.ico?v=6.2.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="http://qiniu.wxjcart.com/monkey.ico?v=6.2.0">
 
 
-  <link rel="mask-icon" href="http://minkedong.com/images/monkey.ico?v=6.2.0" color="#222">
+  <link rel="mask-icon" href="http://qiniu.wxjcart.com/monkey.ico?v=6.2.0" color="#222">
 
 
 
@@ -110,12 +110,12 @@
 <meta property="og:site_name" content="minkedong&#39;s  home">
 <meta property="og:description" content="Openresty是一个基于 Nginx 与 Lua 的高性能 Web 平台，其内部集成了大量精良的 Lua 库、第三方模块以及大多数的依赖项。用于方便地搭建能够处理超高并发、扩展性极高的动态 Web 应用、Web 服务和动态网关。文档：https://moonbingbing.gitbooks.io/openresty-best-practices/content/index.html">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="http://minkedong.com/images/blog_openresty.png">
-<meta property="og:updated_time" content="2019-03-12T02:46:02.290Z">
+<meta property="og:image" content="http://qiniu.wxjcart.com/blog_openresty.png">
+<meta property="og:updated_time" content="2019-05-09T01:18:04.804Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="实时日志分析之二：Openresty">
 <meta name="twitter:description" content="Openresty是一个基于 Nginx 与 Lua 的高性能 Web 平台，其内部集成了大量精良的 Lua 库、第三方模块以及大多数的依赖项。用于方便地搭建能够处理超高并发、扩展性极高的动态 Web 应用、Web 服务和动态网关。文档：https://moonbingbing.gitbooks.io/openresty-best-practices/content/index.html">
-<meta name="twitter:image" content="http://minkedong.com/images/blog_openresty.png">
+<meta name="twitter:image" content="http://qiniu.wxjcart.com/blog_openresty.png">
 
 
 
@@ -309,7 +309,7 @@
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="minkedong">
       <meta itemprop="description" content="">
-      <meta itemprop="image" content="http://minkedong.com/images/houseilei.jpg">
+      <meta itemprop="image" content="http://qiniu.wxjcart.com/houseilei.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
@@ -363,7 +363,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-03-12 10:46:02" itemprop="dateModified" datetime="2019-03-12T10:46:02+08:00">2019-03-12</time>
+                <time title="修改时间：2019-05-09 09:18:04" itemprop="dateModified" datetime="2019-05-09T09:18:04+08:00">2019-05-09</time>
               
             
           </span>
@@ -451,7 +451,7 @@
 <p>默认openresty安装目录：/usr/local/openresty<br>默认nginx安装目录：/usr/local/openresty/nginx</p>
 <h2 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h2><p>创建nginx log目录<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo mkdir -p /var/<span class="built_in">log</span>/nginx</span><br><span class="line">sudo chown -R nginx:nginx /var/<span class="built_in">log</span>/nginx</span><br></pre></td></tr></table></figure></p>
 <p>增加权限，使nginx其可绑定80端口<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">setcap</span> <span class="string">'cap_net_bind_service=+ep'</span> /usr/<span class="built_in">local</span>/openresty/nginx/sbin/nginx</span><br></pre></td></tr></table></figure></p>
-<h2 id="demo"><a href="#demo" class="headerlink" title="demo"></a>demo</h2><p><strong> 下面做一个”hello world”项目openrestydemo </strong><br>开发代码目录结构：<br><img src="http://minkedong.com/images/blog_openresty.png" alt="mahua"></p>
+<h2 id="demo"><a href="#demo" class="headerlink" title="demo"></a>demo</h2><p><strong> 下面做一个”hello world”项目openrestydemo </strong><br>开发代码目录结构：<br><img src="http://qiniu.wxjcart.com/blog_openresty.png" alt="mahua"></p>
 <p>把代码放在服务器/opt/目录下，且保证nginx用户对/opt/openrestydemo目录下的lua脚本有访问权限（很重要）</p>
 <ul>
 <li><p>openrestydemo/conf/nginx.conf代码：</p>
@@ -494,14 +494,14 @@
 
     
       <div id="wechat" style="display: inline-block">
-        <img id="wechat_qr" src="http://minkedong.com/images/qrcode_wechat_14708854571033645.png" alt="minkedong 微信支付"/>
+        <img id="wechat_qr" src="http://qiniu.wxjcart.com/qrcode_wechat_14708854571033645.png" alt="minkedong 微信支付"/>
         <p>微信支付</p>
       </div>
     
 
     
       <div id="alipay" style="display: inline-block">
-        <img id="alipay_qr" src="http://minkedong.com/images/qrcode_alipay_14708867141033645.png" alt="minkedong 支付宝"/>
+        <img id="alipay_qr" src="http://qiniu.wxjcart.com/qrcode_alipay_14708867141033645.png" alt="minkedong 支付宝"/>
         <p>支付宝</p>
       </div>
     
@@ -612,7 +612,7 @@
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
               <img class="site-author-image" itemprop="image"
-                src="http://minkedong.com/images/houseilei.jpg"
+                src="http://qiniu.wxjcart.com/houseilei.jpg"
                 alt="minkedong" />
             
               <p class="site-author-name" itemprop="name">minkedong</p>

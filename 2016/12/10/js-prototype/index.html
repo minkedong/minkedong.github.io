@@ -55,16 +55,16 @@
 <link href="/css/main.css?v=6.2.0" rel="stylesheet" type="text/css" />
 
 
-  <link rel="apple-touch-icon" sizes="180x180" href="http://minkedong.com/images/monkey.ico?v=6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="http://qiniu.wxjcart.com/monkey.ico?v=6.2.0">
 
 
-  <link rel="icon" type="image/png" sizes="32x32" href="http://minkedong.com/images/monkey.ico?v=6.2.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="http://qiniu.wxjcart.com/monkey.ico?v=6.2.0">
 
 
-  <link rel="icon" type="image/png" sizes="16x16" href="http://minkedong.com/images/monkey.ico?v=6.2.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="http://qiniu.wxjcart.com/monkey.ico?v=6.2.0">
 
 
-  <link rel="mask-icon" href="http://minkedong.com/images/monkey.ico?v=6.2.0" color="#222">
+  <link rel="mask-icon" href="http://qiniu.wxjcart.com/monkey.ico?v=6.2.0" color="#222">
 
 
 
@@ -110,12 +110,12 @@
 <meta property="og:site_name" content="minkedong&#39;s  home">
 <meta property="og:description" content="今天来介绍一下JavaScript面向对象中的寄生组合式继承，话不多说，直接上示例代码和图解（没有JavaScript面向对象基础的童鞋建议自行脑补基础知识，推荐书籍《JavaScript高级程序设计(第三版)》）">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="http://minkedong.com/images/javascript-prototype.jpg">
-<meta property="og:updated_time" content="2019-03-12T02:46:15.129Z">
+<meta property="og:image" content="http://qiniu.wxjcart.com/javascript-prototype.jpg">
+<meta property="og:updated_time" content="2019-05-09T01:18:04.036Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="JavaScript面向对象之寄生组合式继承">
 <meta name="twitter:description" content="今天来介绍一下JavaScript面向对象中的寄生组合式继承，话不多说，直接上示例代码和图解（没有JavaScript面向对象基础的童鞋建议自行脑补基础知识，推荐书籍《JavaScript高级程序设计(第三版)》）">
-<meta name="twitter:image" content="http://minkedong.com/images/javascript-prototype.jpg">
+<meta name="twitter:image" content="http://qiniu.wxjcart.com/javascript-prototype.jpg">
 
 
 
@@ -309,7 +309,7 @@
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="minkedong">
       <meta itemprop="description" content="">
-      <meta itemprop="image" content="http://minkedong.com/images/houseilei.jpg">
+      <meta itemprop="image" content="http://qiniu.wxjcart.com/houseilei.jpg">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
@@ -363,7 +363,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-03-12 10:46:15" itemprop="dateModified" datetime="2019-03-12T10:46:15+08:00">2019-03-12</time>
+                <time title="修改时间：2019-05-09 09:18:04" itemprop="dateModified" datetime="2019-05-09T09:18:04+08:00">2019-05-09</time>
               
             
           </span>
@@ -437,7 +437,7 @@
 </blockquote>
 <a id="more"></a>
 <h2 id="示例代码"><a href="#示例代码" class="headerlink" title="示例代码"></a>示例代码</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">SuperType</span>(<span class="params">name</span>)</span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.name = name;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">SuperType.prototype = &#123;</span><br><span class="line">    <span class="keyword">constructor</span>: SuperType,</span><br><span class="line">    colors: ['red', 'blue', 'green'],</span><br><span class="line">    sayName: function()&#123;</span><br><span class="line">        <span class="built_in">console</span>.log(<span class="keyword">this</span>.name);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">SubType</span>(<span class="params">name, age</span>)</span>&#123;</span><br><span class="line">    SuperType.call(<span class="keyword">this</span>, name);</span><br><span class="line">    <span class="keyword">this</span>.age = age;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">inheritPrototype</span>(<span class="params">subtype, supertype</span>)</span>&#123;</span><br><span class="line">    <span class="keyword">var</span> prototype = <span class="built_in">Object</span>.create(supertype.prototype);</span><br><span class="line">    prototype.constructor = subtype;</span><br><span class="line">    subtype.prototype = prototype;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">inheritPrototype(SubType, SuperType);</span><br><span class="line"></span><br><span class="line">SubType.prototype.sayAge = <span class="function"><span class="keyword">function</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="keyword">this</span>.age);</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> instance1 = <span class="keyword">new</span> SubType(<span class="string">'jack'</span>, <span class="number">29</span>);</span><br><span class="line"><span class="keyword">var</span> instance2 = <span class="keyword">new</span> SubType(<span class="string">'tom'</span>, <span class="number">27</span>);</span><br><span class="line">instance1.colors.push(<span class="string">'black'</span>);</span><br><span class="line"><span class="built_in">console</span>.log(instance1.colors); <span class="comment">// 'red', 'blue', 'green', 'black'</span></span><br><span class="line"><span class="built_in">console</span>.log(instance2.colors); <span class="comment">// 'red', 'blue', 'green', 'black'</span></span><br><span class="line">instance1.sayName(); <span class="comment">// jack</span></span><br><span class="line">instance1.sayAge(); <span class="comment">// 29</span></span><br><span class="line">instance2.sayName(); <span class="comment">// tom</span></span><br><span class="line">instance2.sayAge(); <span class="comment">// 27</span></span><br></pre></td></tr></table></figure>
-<h2 id="图解"><a href="#图解" class="headerlink" title="图解"></a>图解</h2><p><img src="http://minkedong.com/images/javascript-prototype.jpg" alt="mahua"></p>
+<h2 id="图解"><a href="#图解" class="headerlink" title="图解"></a>图解</h2><p><img src="http://qiniu.wxjcart.com/javascript-prototype.jpg" alt="mahua"></p>
 <h2 id="说明"><a href="#说明" class="headerlink" title="说明"></a>说明</h2><p>代码“SuperType.call(this, name)”相当于借用构造函数的形式，继承了父类的构造函数</p>
 <p>而实现原型继承最主要就是inheritPrototype函数，其分为三步（不需要把大象装冰箱…）：</p>
 <p>第一步，创建一个新对象，其原型指向父类SubType的原型<br>第二步，将上一步的对象的constructor属性指向子类构造函数<br>第三步，将子类的原型定义为上面新创建的对象</p>
@@ -466,14 +466,14 @@
 
     
       <div id="wechat" style="display: inline-block">
-        <img id="wechat_qr" src="http://minkedong.com/images/qrcode_wechat_14708854571033645.png" alt="minkedong 微信支付"/>
+        <img id="wechat_qr" src="http://qiniu.wxjcart.com/qrcode_wechat_14708854571033645.png" alt="minkedong 微信支付"/>
         <p>微信支付</p>
       </div>
     
 
     
       <div id="alipay" style="display: inline-block">
-        <img id="alipay_qr" src="http://minkedong.com/images/qrcode_alipay_14708867141033645.png" alt="minkedong 支付宝"/>
+        <img id="alipay_qr" src="http://qiniu.wxjcart.com/qrcode_alipay_14708867141033645.png" alt="minkedong 支付宝"/>
         <p>支付宝</p>
       </div>
     
@@ -584,7 +584,7 @@
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
               <img class="site-author-image" itemprop="image"
-                src="http://minkedong.com/images/houseilei.jpg"
+                src="http://qiniu.wxjcart.com/houseilei.jpg"
                 alt="minkedong" />
             
               <p class="site-author-name" itemprop="name">minkedong</p>
