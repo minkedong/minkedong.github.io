@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="mask-icon" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css" integrity="sha256-mUZM63G8m73Mcidfrv5E+Y61y7a12O5mW4ezU3bxqW4=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.minkedong.com","root":"/","images":"/images","scheme":"Mist","version":"8.7.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<meta name="description" content="Celery 是一个简单、灵活且可靠的，处理大量消息的分布式系统，并且提供维护这样一个系统的必需工具。由于在工作的平台中用到Celery系统（用于发送邮件、发送短信等任务），记录一下学习的知识。还有就是“百毒”上关于Celery的博客，基本都没有多机器worker节点怎么部署的介绍，所以有这方面疑惑的童鞋可以参考之。如有疑问请联系我，大家共同学习！">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Celery+RabbitMQ的多机器worker节点介绍">
+<meta property="og:url" content="http://blog.minkedong.com/2016/10/21/celery/index.html">
+<meta property="og:site_name" content="minkedong&#39;s  home">
+<meta property="og:description" content="Celery 是一个简单、灵活且可靠的，处理大量消息的分布式系统，并且提供维护这样一个系统的必需工具。由于在工作的平台中用到Celery系统（用于发送邮件、发送短信等任务），记录一下学习的知识。还有就是“百毒”上关于Celery的博客，基本都没有多机器worker节点怎么部署的介绍，所以有这方面疑惑的童鞋可以参考之。如有疑问请联系我，大家共同学习！">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://dsp-download.lddengine.cn/philipblog/celery_process.jpg">
+<meta property="og:image" content="http://dsp-download.lddengine.cn/philipblog/celery_code_structure.png">
+<meta property="article:published_time" content="2016-10-21T07:16:29.000Z">
+<meta property="article:modified_time" content="2021-09-01T15:50:37.898Z">
+<meta property="article:author" content="minkedong">
+<meta property="article:tag" content="python">
+<meta property="article:tag" content="celery">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://dsp-download.lddengine.cn/philipblog/celery_process.jpg">
+
+
+<link rel="canonical" href="http://blog.minkedong.com/2016/10/21/celery/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://blog.minkedong.com/2016/10/21/celery/","path":"2016/10/21/celery/","title":"Celery+RabbitMQ的多机器worker节点介绍"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Celery+RabbitMQ的多机器worker节点介绍 | minkedong's  home</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">minkedong's  home</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="home fa-fw"></i>首页</a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85"><span class="nav-number">1.</span> <span class="nav-text">安装</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8E%9F%E7%90%86%E4%BB%8B%E7%BB%8D"><span class="nav-number">2.</span> <span class="nav-text">原理介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9E%84%E5%BB%BACelery-RabbitMQ%E7%9A%84%E5%A4%9A%E6%9C%BA%E5%99%A8worker%E8%8A%82%E7%82%B9%E5%AE%9E%E4%BE%8B"><span class="nav-number">3.</span> <span class="nav-text">构建Celery+RabbitMQ的多机器worker节点实例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Celery%E9%85%8D%E7%BD%AE%E5%BB%BA%E8%AE%AE"><span class="nav-number">4.</span> <span class="nav-text">Celery配置建议</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-overview">
+            <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="minkedong"
+      src="http://dsp-download.lddengine.cn/philipblog/houseilei.jpg">
+  <p class="site-author-name" itemprop="name">minkedong</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">23</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author site-overview-item animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/minkedong" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;minkedong" rel="noopener" target="_blank"><i class="github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.minkedong.com/2016/10/21/celery/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="http://dsp-download.lddengine.cn/philipblog/houseilei.jpg">
+      <meta itemprop="name" content="minkedong">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="minkedong's  home">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Celery+RabbitMQ的多机器worker节点介绍
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2016-10-21 15:16:29" itemprop="dateCreated datePublished" datetime="2016-10-21T15:16:29+08:00">2016-10-21</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">更新于</span>
+        <time title="修改时间：2021-09-01 23:50:37" itemprop="dateModified" datetime="2021-09-01T23:50:37+08:00">2021-09-01</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%BC%96%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">编程</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <blockquote>
+<p>Celery 是一个简单、灵活且可靠的，处理大量消息的分布式系统，并且提供维护这样一个系统的必需工具。由于在工作的平台中用到Celery系统（用于发送邮件、发送短信等任务），记录一下学习的知识。还有就是“百毒”上关于Celery的博客，基本都没有多机器worker节点怎么部署的介绍，所以有这方面疑惑的童鞋可以参考之。如有疑问请联系我，大家共同学习！</p>
+</blockquote>
+<span id="more"></span>
+
+<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><p><strong>１．Celery Borker：</strong></p>
+<p>使用RabbitMQ作为Celery Borker的优点：</p>
+<ul>
+<li>Highly customizable routing</li>
+<li>Persistent queues</li>
+</ul>
+<p>使用Redis作为Celery Borker的优点：</p>
+<ul>
+<li>high speed due to in memory datastore</li>
+<li>can double up as both key-value datastore and job queue</li>
+</ul>
+<p>Celery官网首推RabbitMQ，博主这里也使用了RabbitMQ作为Celery Borker<br>关于RabbitMQ的入门介绍有一篇非常好的译文，强烈推荐：<a target="_blank" rel="noopener" href="http://simple-is-better.com/news/353">http://simple-is-better.com/news/353</a><br>RabbitMQ的安装可以直接参考RabbitMQ的官网，这里以ubuntu平台作为安装示例如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install rabbitmq-server</span><br></pre></td></tr></table></figure>
+<p>安装完成后，新增一个RabbitMQ用户（用户名：artcm，密码：111）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rabbitmqctl  add_user  artcm  111</span><br></pre></td></tr></table></figure>
+<p>设置RabbitMQ用户角色</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rabbitmqctl  set_user_tags  artcm administrator</span><br></pre></td></tr></table></figure>
+<p>启动RabbitMQ的web监控（访问<a target="_blank" rel="noopener" href="http://127.0.0.1:15672/%E5%8D%B3%E5%8F%AF%E6%9F%A5%E7%9C%8BRabbitMQ%E6%9C%8D%E5%8A%A1%E7%9A%84%E5%90%84%E7%A7%8D%E4%BF%A1%E6%81%AF%EF%BC%89">http://127.0.0.1:15672/即可查看RabbitMQ服务的各种信息）</a></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rabbitmq-plugins <span class="built_in">enable</span> rabbitmq_management</span><br></pre></td></tr></table></figure>
+
+<p><strong>2．Celery：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install celery</span><br></pre></td></tr></table></figure>
+
+<p><strong>3．celery web监控：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install flower</span><br></pre></td></tr></table></figure>
+
+<h2 id="原理介绍"><a href="#原理介绍" class="headerlink" title="原理介绍"></a>原理介绍</h2><p><img src="http://dsp-download.lddengine.cn/philipblog/celery_process.jpg" alt="mahua"></p>
+<p>介绍：<br>带有路由键key1的任务消息请求celery执行，首先交换机根据绑定的规则把任务消息放到指定的队列中去，此队列对应的worker节点取出任务执行</p>
+<p>说明：<br>（1）为什么要定义多个交换机？<br>每个交换机都会新建一个进程，充分利用服务器多核，提高执行效率<br>另外，多个交换机可扩展性强</p>
+<p>（2）同一个服务器可启动多个worker节点？<br>是的，启动的时候加上不同的–hostname参数即可</p>
+<p>（3）celery默认会创建一个celery交换机、绑定、队列，没有匹配任何绑定的任务会发送到此celery队列中</p>
+<p>（4）交换机绑定的方式（原理介绍图中使用的是Direct Exchange）</p>
+<ul>
+<li>Fanout Exchange – 不处理路由键。你只需要简单的将队列绑定到交换机上。一个发送到交换机的消息都会被转发到与该交换机绑定的所有队列上。很像子网广播，每台子网内的主机都获得了一份复制的消息。Fanout交换机转发消息是最快的。</li>
+<li>Direct Exchange – 处理路由键。需要将一个队列绑定到交换机上，要求该消息与一个特定的路由键完全匹配。这是一个完整的匹配。如果一个队列绑定到该交换机上要求路由键 “dog”，则只有被标记为“dog”的消息才被转发，不会转发dog.puppy，也不会转发dog.guard，只会转发dog。</li>
+<li>Topic Exchange – 将路由键和某模式进行匹配。此时队列需要绑定要一个模式上。符号“#”匹配一个或多个词，符号“*”匹配不多不少一个词。因此“audit.#”能够匹配到“audit.irs.corporate”，但是“audit.*” 只会匹配到“audit.irs”。</li>
+</ul>
+<h2 id="构建Celery-RabbitMQ的多机器worker节点实例"><a href="#构建Celery-RabbitMQ的多机器worker节点实例" class="headerlink" title="构建Celery+RabbitMQ的多机器worker节点实例"></a>构建Celery+RabbitMQ的多机器worker节点实例</h2><p>（1）准备：<br>假如我们现在有四台服务器，地址分别如下：<br>192.168.1.190<br>192.168.1.191<br>192.168.1.192<br>192.168.1.193</p>
+<p>我们把RabbitMQ服务放在193那台服务器上<br>我们把flower服务也启动在193那台服务器上<br>代码中定义的队列有queue_add_reduce、queue_sum （还有个默认队列celery）<br>190、191、192服务器用于启动worker节点</p>
+<p>190服务器上启动处理celery和queue_add_reduce队列的worker节点<br>191服务器上启动处理celery和queue_sum队列的worker节点<br>192服务器上启动处理queue_add_reduce和queue_sum队列的worker节点</p>
+<p>（2）celery项目文件结构<br><img src="http://dsp-download.lddengine.cn/philipblog/celery_code_structure.png" alt="mahua"></p>
+<p>（3）代码（在190、191、192服务器都得有celeryservice项目代码）<br>celery配置文件./celeryservice/celeryconfig.py</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"><span class="keyword">import</span> datetime</span><br><span class="line"><span class="keyword">from</span> celery.schedules <span class="keyword">import</span> crontab</span><br><span class="line"><span class="keyword">from</span> kombu <span class="keyword">import</span> Exchange, Queue</span><br><span class="line"></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line"><span class="comment"># Broker settings #</span></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line">BROKER_URL = <span class="string">&#x27;amqp://artcm:111@192.168.1.193:5672//&#x27;</span></span><br><span class="line"><span class="comment"># BROKER_URL = &#x27;redis://localhost:6379/1&#x27;</span></span><br><span class="line">BROKER_POOL_LIMIT = <span class="number">10</span> <span class="comment"># 默认celery与borker的连接池连接数</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># List of modules to import when celery starts.</span></span><br><span class="line">CELERY_IMPORTS = (<span class="string">&#x27;celeryservice.tasks&#x27;</span>, )</span><br><span class="line"></span><br><span class="line"><span class="comment"># 存储revokes状态(Persistent revokes)</span></span><br><span class="line">CELERYD_STATE_DB = <span class="string">&#x27;./celeryservice/celerymain/celery_revokes_state_db&#x27;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line"><span class="comment"># 默认task结果存储配置 #</span></span><br><span class="line"><span class="comment"># 建议：存储结果会浪费很多资源，业务上非必须的话，不存储结果</span></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line"><span class="comment"># CELERY_IGNORE_RESULT = True # celery结果忽略</span></span><br><span class="line"><span class="comment">## Using the database to store task state and results.</span></span><br><span class="line"><span class="comment"># CELERY_RESULT_BACKEND = &#x27;mongodb://192.168.1.121:27017/&#x27;</span></span><br><span class="line"><span class="comment"># CELERY_MONGODB_BACKEND_SETTINGS = &#123;</span></span><br><span class="line"><span class="comment">#   &#x27;database&#x27;: &#x27;celery_backend&#x27;,</span></span><br><span class="line"><span class="comment">#   &#x27;taskmeta_collection&#x27;: &#x27;task_result&#x27;,</span></span><br><span class="line"><span class="comment">#   &#x27;max_pool_size&#x27;:10,</span></span><br><span class="line"><span class="comment"># &#125;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line"><span class="comment"># 默认频次限制配置 #</span></span><br><span class="line"><span class="comment"># 建议：频次内部实现灰常复杂，最好不要使用</span></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line">CELERY_DISABLE_RATE_LIMITS = <span class="literal">True</span> <span class="comment"># 不使用频次限制</span></span><br><span class="line"><span class="comment"># &#x27;1/s&#x27;每秒,&#x27;1/m&#x27;每分钟, &#x27;1/h&#x27;每小时 (每个task每秒最多执行频次,多出的任务为received状态，等待一段时间后执行，特别注意：这样就有可能导致有的任务会延迟执行)</span></span><br><span class="line"><span class="comment"># CELERY_DEFAULT_RATE_LIMIT = &#x27;10000/m&#x27; </span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line"><span class="comment"># 一般配置 #</span></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line">CELERY_TASK_SERIALIZER = <span class="string">&#x27;json&#x27;</span></span><br><span class="line">CELERY_RESULT_SERIALIZER = <span class="string">&#x27;json&#x27;</span></span><br><span class="line">CELERY_ACCEPT_CONTENT=[<span class="string">&#x27;json&#x27;</span>]</span><br><span class="line">CELERY_TIMEZONE = <span class="string">&#x27;Asia/Shanghai&#x27;</span></span><br><span class="line">CELERY_ENABLE_UTC = <span class="literal">True</span></span><br><span class="line"><span class="comment"># CELERY_MESSAGE_COMPRESSION = &#x27;gzip&#x27; # 如果发送的tasks参数信息量较大，则使用压缩传输</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line"><span class="comment"># 默认log配置 #</span></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line">CELERYD_LOG_FILE=<span class="string">&quot;./celeryservice/celerymain/celery.log&quot;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line"><span class="comment"># 默认邮件配置 #</span></span><br><span class="line"><span class="comment"># 注意：如果是task中retry了，最后failure，不会发出邮件(待研究)　#</span></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line">CELERY_SEND_TASK_ERROR_EMAILS = <span class="literal">True</span> <span class="comment">#celery接收错误邮件  </span></span><br><span class="line">ADMINS = (  </span><br><span class="line">    (<span class="string">&quot;minkedong&quot;</span>, <span class="string">&quot;190926234@qq.com&quot;</span>), <span class="comment"># celery接收错误邮件地址  </span></span><br><span class="line">)</span><br><span class="line">SERVER_EMAIL = <span class="string">&quot;minkedong89@126.com&quot;</span> <span class="comment"># 从哪里发送的错误地址  </span></span><br><span class="line">EMAIL_HOST = <span class="string">&quot;smtp.126.com&quot;</span></span><br><span class="line">EMAIL_HOST_USER = SERVER_EMAIL</span><br><span class="line">EMAIL_HOST_PASSWORD = <span class="string">&#x27;xxxxxxxx&#x27;</span></span><br><span class="line">EMAIL_PORT = <span class="number">25</span></span><br><span class="line">EMAIL_USE_SSL = <span class="literal">False</span></span><br><span class="line">EMAIL_USE_TLS = <span class="literal">False</span></span><br><span class="line">EMAIL_TIMEOUT = <span class="number">2</span> <span class="comment"># 2秒</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line"><span class="comment"># routing #</span></span><br><span class="line"><span class="comment"># 需要了解一下rabbitMQ的“队列””交换机“”绑定“的概念：http://simple-is-better.com/news/353</span></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line"><span class="comment">##### 队列属性定义 ####</span></span><br><span class="line"><span class="comment"># 相当于定义RabbitMQ中的&quot;队列、交换机、绑定&quot;机制（跟celery无关）（可以使用同一个交换机绑定多个队列）</span></span><br><span class="line"><span class="comment"># 没有在CELERY_ROUTES中的task，默认发送到&quot;celery&quot;队列中</span></span><br><span class="line">CELERY_QUEUES = (</span><br><span class="line">    Queue(<span class="string">&#x27;queue_add_reduce&#x27;</span>, exchange=Exchange(<span class="string">&#x27;calculate_exchange&#x27;</span>, <span class="built_in">type</span>=<span class="string">&#x27;direct&#x27;</span>), routing_key=<span class="string">&#x27;key1&#x27;</span>),</span><br><span class="line">    Queue(<span class="string">&#x27;queue_sum&#x27;</span>, exchange=Exchange(<span class="string">&#x27;calculate_exchange&#x27;</span>, <span class="built_in">type</span>=<span class="string">&#x27;direct&#x27;</span>), routing_key=<span class="string">&#x27;key2&#x27;</span>),</span><br><span class="line">    Queue(<span class="string">&#x27;celery&#x27;</span>, Exchange(<span class="string">&#x27;celery&#x27;</span>), routing_key=<span class="string">&#x27;celery&#x27;</span>), <span class="comment"># 里面使用的都是默认参数值</span></span><br><span class="line">)</span><br><span class="line">CELERY_DEFAULT_QUEUE = <span class="string">&#x27;celery&#x27;</span></span><br><span class="line">CELERY_DEFAULT_EXCHANGE_TYPE = <span class="string">&#x27;direct&#x27;</span></span><br><span class="line">CELERY_DEFAULT_ROUTING_KEY = <span class="string">&#x27;celery&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">###### 路由：taks对应发送的队列及使用的routing_key #####</span></span><br><span class="line"><span class="comment"># delivery_mode参数(决定tasks发送到RabbitMQ后，是否存储到磁盘中)（celery默认使用２：持久化方式）：</span></span><br><span class="line"><span class="comment"># １表示rabbitmq不存储celery发送的tasks到磁盘,RabbitMQ重启后，任务丢失（建议使用这种方式）</span></span><br><span class="line"><span class="comment"># ２表示rabbitmq可以存储celery发送的tasks到磁盘，RabbitMQ重启后，任务不会丢失（磁盘IO资源消耗极大，影响性能）</span></span><br><span class="line">CELERY_ROUTES = &#123;</span><br><span class="line">    <span class="string">&#x27;celeryservice.tasks.add&#x27;</span>: &#123;<span class="string">&#x27;queue&#x27;</span>: <span class="string">&#x27;queue_add_reduce&#x27;</span>, <span class="string">&#x27;routing_key&#x27;</span>: <span class="string">&#x27;key1&#x27;</span>, <span class="string">&#x27;delivery_mode&#x27;</span>: <span class="number">1</span>&#125;,</span><br><span class="line">    <span class="string">&#x27;celeryservice.tasks.reduce&#x27;</span>: &#123;<span class="string">&#x27;queue&#x27;</span>: <span class="string">&#x27;queue_add_reduce&#x27;</span>, <span class="string">&#x27;routing_key&#x27;</span>: <span class="string">&#x27;key1&#x27;</span>, <span class="string">&#x27;delivery_mode&#x27;</span>: <span class="number">1</span>&#125;,</span><br><span class="line">    <span class="string">&#x27;celeryservice.tasks.sum_all&#x27;</span>: &#123;<span class="string">&#x27;queue&#x27;</span>: <span class="string">&#x27;queue_sum&#x27;</span>, <span class="string">&#x27;routing_key&#x27;</span>: <span class="string">&#x27;key2&#x27;</span>, <span class="string">&#x27;delivery_mode&#x27;</span>: <span class="number">1</span>&#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>任务文件./celeryservice/tasks.py</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> datetime</span><br><span class="line">BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))</span><br><span class="line">sys.path.append(BASE_DIR)</span><br><span class="line"><span class="keyword">from</span> celery <span class="keyword">import</span> Celery</span><br><span class="line"><span class="keyword">from</span> celery <span class="keyword">import</span> chain, group, chord, Task</span><br><span class="line"><span class="keyword">from</span> celeryservice <span class="keyword">import</span> celeryconfig</span><br><span class="line">app = Celery()</span><br><span class="line">app.config_from_object(celeryconfig)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">__all__ = [<span class="string">&#x27;add&#x27;</span>, <span class="string">&#x27;reduce&#x27;</span>,<span class="string">&#x27;sum_all&#x27;</span>, <span class="string">&#x27;other&#x27;</span>]</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line"><span class="comment"># task定义 #</span></span><br><span class="line"><span class="comment">####################################</span></span><br><span class="line"><span class="meta">@app.task</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">add</span>(<span class="params">x, y</span>):</span></span><br><span class="line">    <span class="keyword">return</span> x + y</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.task</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">reduce</span>(<span class="params">x, y</span>):</span></span><br><span class="line">    <span class="keyword">return</span> x - y</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.task</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">sum_all</span>(<span class="params">values</span>):</span></span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">sum</span>([<span class="built_in">int</span>(value) <span class="keyword">for</span> value <span class="keyword">in</span> values])</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@app.task</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">other</span>(<span class="params">x, y</span>):</span></span><br><span class="line">    <span class="keyword">return</span> x * y</span><br></pre></td></tr></table></figure>
+
+<p>flower配置文件./celeryservice/flower/flowerconfig.py</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">flower启动命令使用的配置文件</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line"></span><br><span class="line">address = <span class="string">&#x27;0.0.0.0&#x27;</span> <span class="comment"># 保证外网可以访问</span></span><br><span class="line">port = <span class="number">5555</span></span><br><span class="line"></span><br><span class="line">basic_auth = [<span class="string">&#x27;mkd:mkd&#x27;</span>,<span class="string">&#x27;artcm:111&#x27;</span>] <span class="comment"># 用户名：密码</span></span><br><span class="line"></span><br><span class="line">persistent = <span class="literal">True</span> <span class="comment"># 持久化celery tasks（如果为False的话，重启flower后，监控的tasks全部消失了！）</span></span><br><span class="line">db = <span class="string">&#x27;./celeryservice/flower/flowerdb&#x27;</span> <span class="comment"># 持久化tasks存储的地方</span></span><br></pre></td></tr></table></figure>
+
+<p>（4）启动（在celeryservice同级目录上运行以下命令）<br>190服务器上启动处理celery和queue_add_reduce队列的worker节点：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">celery worker -A celeryservice.tasks --loglevel=info --queues=celery,queue_add_reduce --hostname=celery_worker190 --pidfile=./celeryservice/celerymain/celery_worker.pid  &gt;/dev/null 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
+
+<p>191服务器上启动处理celery和queue_sum队列的worker节点：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">celery worker -A celeryservice.tasks --loglevel=info --queues=celery,queue_sum --hostname=celery_worker191 --pidfile=./celeryservice/celerymain/celery_worker.pid  &gt;/dev/null 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
+
+<p>192服务器上启动处理queue_add_reduce和queue_sum队列的worker节点：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">celery worker -A celeryservice.tasks --loglevel=info --queues=queue_add_reduce,queue_sum --hostname=celery_worker192 --pidfile=./celeryservice/celerymain/celery_worker.pid  &gt;/dev/null 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
+
+<p>我们把flower服务也启动在193那台服务器上（可通过<a target="_blank" rel="noopener" href="http://192.168.1.193:5555/%E8%AE%BF%E9%97%AE%EF%BC%89%EF%BC%9A">http://192.168.1.193:5555/访问）：</a></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">celery flower --broker=amqp://artcm:111@192.168.1.193:5672// --conf=./celeryservice/flower/flowerconfig.py  &gt;/dev/null 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
+
+<p>（4）运行测试</p>
+<p>在任一台有celeryservice项目代码的服务器上，运行add、reduce、sum_all、other任务（测试可简单使用add.delay(1,2)等）</p>
+<p>add和reduce任务，可能会在190或192服务器的worker节点运行<br>sum_all任务，可能会在191或192服务器的worker节点运行<br>other任务，可能会在190或191服务器的worker节点运行</p>
+<h2 id="Celery配置建议"><a href="#Celery配置建议" class="headerlink" title="Celery配置建议"></a>Celery配置建议</h2><ul>
+<li><p>task定义代码中不要再发送另外的task(上一个task输出结果作为下一个task输入)，<br>导致task相互依赖等待结果，运行有可能会有问题（最好使用Canvas　Designing Workflows）</p>
+</li>
+<li><p>使用Persistent revokes，在celeryconfig.py中定义CELERYD_STATE_DB</p>
+</li>
+<li><p>根据实际业务场景，调整celeryconfig.py中的BROKER_POOL_LIMIT（celery与borker的连接池连接数）</p>
+</li>
+<li><p>发送到rabbitmq的tasks，使用delivery_mode=1的方式（不存储tasks信息到磁盘）,见CELERY_ROUTES设定</p>
+</li>
+<li><p>注意设置celery的worker预取值“CELERYD_PREFETCH_MULTIPLIER“，如果你的task是很耗时的任务，最好设置为1，避免造成队列拥堵。如果你的task是非耗时的任务，则可根据实际情况调大此值，提高吞吐量</p>
+</li>
+<li><p>最好设置task的软超时时间”CELERYD_TASK_SOFT_TIME_LIMIT“，如果任务超过此时间没有执行完成，则会报错celery.exceptions.SoftTimeLimitExceeded（可在代码中捕获做相应业务处理），避免造成队列拥堵</p>
+</li>
+<li><p>一定要设置“CELERYD_MAX_TASKS_PER_CHILD”，此值表示每个worker工作进程在执行了多少task之后便重新建立worker进程，解决celery的内存泄漏问题</p>
+</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/python/" rel="tag"># python</a>
+              <a href="/tags/celery/" rel="tag"># celery</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2016/08/12/django-wechatvote/" rel="prev" title="（开源）微信投票活动">
+                  <i class="fa fa-chevron-left"></i> （开源）微信投票活动
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2016/12/10/js-prototype/" rel="next" title="JavaScript面向对象之寄生组合式继承">
+                  JavaScript面向对象之寄生组合式继承 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 2016 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">minkedong</span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/mist/" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/schemes/muse.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="mask-icon" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css" integrity="sha256-mUZM63G8m73Mcidfrv5E+Y61y7a12O5mW4ezU3bxqW4=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.minkedong.com","root":"/","images":"/images","scheme":"Mist","version":"8.7.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<meta name="description" content="在业务逐渐变大后，系统维护工作需要投入越来越多的精力，于是开始了docker化改造。期间也遇到了一些实际问题，总结了一些经验，希望对已在生产环境中使用docker或者正在准备进行服务docker化改造的童鞋有所帮助！">
+<meta property="og:type" content="article">
+<meta property="og:title" content="业务docker化改造">
+<meta property="og:url" content="http://blog.minkedong.com/2018/05/11/docker/index.html">
+<meta property="og:site_name" content="minkedong&#39;s  home">
+<meta property="og:description" content="在业务逐渐变大后，系统维护工作需要投入越来越多的精力，于是开始了docker化改造。期间也遇到了一些实际问题，总结了一些经验，希望对已在生产环境中使用docker或者正在准备进行服务docker化改造的童鞋有所帮助！">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://dsp-download.lddengine.cn/philipblog/blog_docker_why.png">
+<meta property="og:image" content="http://dsp-download.lddengine.cn/philipblog/blog_docker.png">
+<meta property="article:published_time" content="2018-05-11T07:16:29.000Z">
+<meta property="article:modified_time" content="2021-09-01T15:51:23.793Z">
+<meta property="article:author" content="minkedong">
+<meta property="article:tag" content="docker">
+<meta property="article:tag" content="swarm">
+<meta property="article:tag" content="traefik">
+<meta property="article:tag" content="portainer">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://dsp-download.lddengine.cn/philipblog/blog_docker_why.png">
+
+
+<link rel="canonical" href="http://blog.minkedong.com/2018/05/11/docker/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://blog.minkedong.com/2018/05/11/docker/","path":"2018/05/11/docker/","title":"业务docker化改造"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>业务docker化改造 | minkedong's  home</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">minkedong's  home</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="home fa-fw"></i>首页</a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88docker%E5%8C%96"><span class="nav-number">1.</span> <span class="nav-text">为什么docker化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E6%B2%A1%E6%9C%89%E9%80%89%E6%8B%A9k8s"><span class="nav-number">2.</span> <span class="nav-text">为什么没有选择k8s</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Docker%E7%9B%B8%E5%85%B3%E7%BB%84%E4%BB%B6%E4%BB%8B%E7%BB%8D"><span class="nav-number">3.</span> <span class="nav-text">Docker相关组件介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%9A%E5%8A%A1Docker%E5%8C%96%E6%94%B9%E9%80%A0%E5%9B%BE"><span class="nav-number">4.</span> <span class="nav-text">业务Docker化改造图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98%E5%8F%8A%E5%BB%BA%E8%AE%AE"><span class="nav-number">5.</span> <span class="nav-text">遇到的问题及建议</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-overview">
+            <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="minkedong"
+      src="http://dsp-download.lddengine.cn/philipblog/houseilei.jpg">
+  <p class="site-author-name" itemprop="name">minkedong</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">23</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author site-overview-item animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/minkedong" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;minkedong" rel="noopener" target="_blank"><i class="github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.minkedong.com/2018/05/11/docker/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="http://dsp-download.lddengine.cn/philipblog/houseilei.jpg">
+      <meta itemprop="name" content="minkedong">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="minkedong's  home">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          业务docker化改造
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2018-05-11 15:16:29" itemprop="dateCreated datePublished" datetime="2018-05-11T15:16:29+08:00">2018-05-11</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">更新于</span>
+        <time title="修改时间：2021-09-01 23:51:23" itemprop="dateModified" datetime="2021-09-01T23:51:23+08:00">2021-09-01</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%BC%96%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">编程</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <blockquote>
+<p>在业务逐渐变大后，系统维护工作需要投入越来越多的精力，于是开始了docker化改造。期间也遇到了一些实际问题，总结了一些经验，希望对已在生产环境中使用docker或者正在准备进行服务docker化改造的童鞋有所帮助！</p>
+</blockquote>
+<span id="more"></span>
+
+<h2 id="为什么docker化"><a href="#为什么docker化" class="headerlink" title="为什么docker化"></a>为什么docker化</h2><p><img src="http://dsp-download.lddengine.cn/philipblog/blog_docker_why.png" alt="mahua"></p>
+<ul>
+<li>开发过程中一个常见的问题是环境一致性问题。由于开发环境、测试环境、生产环境不一致，导致有些 bug 并未在开发过程中被发现。而 Docker 的镜像提供了除内核外完整的运行时环境，确保了应用运行环境一致性，从而不会再出现 「这段代码在我机器上没问题啊」 这类问题。</li>
+<li>对开发和运维（DevOps）人员来说，最希望的就是一次创建或配置，可以在任意地方正常运行。使用docker的镜像，完成一次build，轻松部署。</li>
+<li>对于系统的运维、扩展、迁移，docker有着天然的优势。</li>
+</ul>
+<h2 id="为什么没有选择k8s"><a href="#为什么没有选择k8s" class="headerlink" title="为什么没有选择k8s"></a>为什么没有选择k8s</h2><ul>
+<li>k8s对于我们现有的业务系统来说，还是太大太重了。且k8s的学习成本也是相对较大的，当然后期我们应该也会投入研究。总之一句话，就现阶段来说，k8s还不太适合我们。</li>
+</ul>
+<h2 id="Docker相关组件介绍"><a href="#Docker相关组件介绍" class="headerlink" title="Docker相关组件介绍"></a>Docker相关组件介绍</h2><p>** 1. image **</p>
+<ul>
+<li>镜像是一个特殊的文件系统，除了提供容器运行时所需的程序、库、资源、配置等文件外，还包含了一些为运行时准备的一些配置参数（如匿名卷、环境变量、用户等）。镜像不包含任何动态数据，其内容在构建之后也不会被改变。</li>
+<li>镜像最大的特点就是它是分层存储的，这对于你写出好的Dockerfile有很大的帮助。</li>
+</ul>
+<p>** 2. container **</p>
+<ul>
+<li>容器是镜像运行时的实体，它的实质是进程，但与直接在宿主机执行的进程不同，容器进程运行于属于自己的独立的命名空间。</li>
+<li>容器可以被创建、启动、停止、删除、暂停等。</li>
+</ul>
+<p>** 3. compose **</p>
+<ul>
+<li>Docker三剑客之一</li>
+<li>负责实现对Docker容器集群的快速编排。它允许用户通过一个单独的docker-compose.yml模板文件（YAML 格式）来定义一组相关联的应用容器为一个项目（project）。</li>
+</ul>
+<p>** 4. machine **</p>
+<ul>
+<li>Docker三剑客之一</li>
+<li>可以通过machine连接操作远程docker。</li>
+</ul>
+<p>** 5. swarm mode **</p>
+<ul>
+<li>Docker三剑客之一</li>
+<li>Swarm是使用SwarmKit构建的Docker引擎内置（原生）的集群管理和编排工具。</li>
+</ul>
+<p>** 6. traefik **</p>
+<ul>
+<li>traefik是一个HTTP反向代理、负载均衡工具。</li>
+<li>traefik本身也可以运行在docker swarm中，可以作为docker服务的外部流量入口。</li>
+</ul>
+<p>** 7. portainer **</p>
+<ul>
+<li>Portainer是Docker的图形化管理工具。</li>
+<li>提供状态显示面板、应用模板快速部署、容器镜像网络数据卷的基本操作（包括上传下载镜像，创建容器等操作）、事件日志显示、容器控制台操作、Swarm集群和服务等集中管理和操作、登录用户管理和控制等功能。</li>
+</ul>
+<h2 id="业务Docker化改造图"><a href="#业务Docker化改造图" class="headerlink" title="业务Docker化改造图"></a>业务Docker化改造图</h2><p><img src="http://dsp-download.lddengine.cn/philipblog/blog_docker.png" alt="mahua"></p>
+<p>** 说明 **</p>
+<ul>
+<li>首先要说明的是，我们只是进行了部分核心业务的docker化改造。</li>
+<li>Docker Manager节点运行了traefik服务，其作为反向代理，接收外网及内网的流量，然后再反向代理到docker swarm内部服务。</li>
+<li>Docker Manager节点还运行了portainer服务，作为图形化工具，可以让我们轻松的通过web端来控制docker swarm中的服务，例如重启service，新增stack等。当然，这里的portainer服务也是通过traefik反向代理过来的。</li>
+<li>Docker Worker节点上运行着我们的业务服务，他们都是没有开放流量入口的，唯一的方式就是通过traefik反向代理过来。</li>
+<li>Docker Private Registry是我们的私有镜像仓库，是使用了开源的工具Harbor构建的，负责整个swarm集群私有镜像的push和pull。</li>
+<li>在我们自己的机器上，远程控制swarm集群节点，可以使用docker-machine，非常的方便（包括新增swarm节点，查看集群状态等）。</li>
+<li>在docker之外，我们有一个consul服务发现的集群（都在同一内网）。docker外部的内网服务可以通过consul的dns解析，内网请求到docker内部的服务。当然，docker内部的容器服务也可以通过指定consul的dns解析来内网访问外部的服务。</li>
+<li>外网域名解析到traefik几台机器上，使用AWS的route 53的健康检查服务，来尽量保证服务的高可用。而内网域名解析是使用consul，其自带服务发现功能（需要在traefik服务的机器节点上安装consul client服务），同样也能保证服务的高可用。</li>
+</ul>
+<h2 id="遇到的问题及建议"><a href="#遇到的问题及建议" class="headerlink" title="遇到的问题及建议"></a>遇到的问题及建议</h2><ul>
+<li>linode服务器问题：我们的docker swarm集群是在linode服务器上部署的（centos7），由于要使用到overlay网络，服务器的内核必须选择GRUB2。具体可以参考issue：<a target="_blank" rel="noopener" href="https://github.com/docker/machine/issues/2753">https://github.com/docker/machine/issues/2753</a></li>
+<li>Dockerfile写法问题：python等代码COPY操作，可以放在最后，因为在后续开发过程中，类似”RUN apk update &amp;&amp; apk –update add –no-cache lapack-dev”这种安装系统依赖的内容大部分情况下不会再变，变得只有代码，这样的话，只有第一次构建镜像会运行”RUN”的操作（有点慢），后续再次构建镜像时，由于前面的层已经构建了，不需要再次构建，只会把代码加入到镜像中，构建镜像会很快。</li>
+<li>docker swarm集群在多次发布新的镜像后，会产生一些虚悬镜像，可以在docker宿主机上设置一个定时任务，每天清除这些虚悬镜像，命令为：docker image prune -f</li>
+<li>我们的基础镜像大部分选择了alpine，其体积非常之小。</li>
+<li>docker-machine如何在开发成员之间共享已连接的远程机器，我们选择了npm的machine-share工具，其方便的给出了导入导出machine的命令。具体可以参考issue：<a target="_blank" rel="noopener" href="https://github.com/docker/machine/issues/23">https://github.com/docker/machine/issues/23</a></li>
+<li>关于使用traefik之后，如何在反向代理的service中取得用户真实的ip，需要配置traefik使用”mode: host”的方式。具体可以参考stackoverflow：<a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/44639958/nginx-behind-traefik-docker-swarm-mode-real-ip">https://stackoverflow.com/questions/44639958/nginx-behind-traefik-docker-swarm-mode-real-ip</a></li>
+<li>在portainer中，首先要配置的就是registries（我们的私有仓库），这样的话，我们才能保证正常拉取到镜像。</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/docker/" rel="tag"># docker</a>
+              <a href="/tags/swarm/" rel="tag"># swarm</a>
+              <a href="/tags/traefik/" rel="tag"># traefik</a>
+              <a href="/tags/portainer/" rel="tag"># portainer</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2018/02/23/consul-rabbitmq/" rel="prev" title="rabbitmq集群 && consul自动发现">
+                  <i class="fa fa-chevron-left"></i> rabbitmq集群 && consul自动发现
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2018/12/15/ngx-http-proxy-module/" rel="next" title="nginx反向代理相关">
+                  nginx反向代理相关 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 2016 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">minkedong</span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/mist/" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/schemes/muse.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

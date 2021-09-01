@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="mask-icon" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css" integrity="sha256-mUZM63G8m73Mcidfrv5E+Y61y7a12O5mW4ezU3bxqW4=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.minkedong.com","root":"/","images":"/images","scheme":"Mist","version":"8.7.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<meta name="description" content="在面对大量用户访问、高并发请求方面，基本的解决方案集中在这样几个环节：使用高性能的服务器、高性能的数据库、高效率的编程语言、还有高性能的Web容器、负载均衡等等今天我们就要介绍一种解决高并发场景的方案：Openresty">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OpenResty在高并发场景的应用">
+<meta property="og:url" content="http://blog.minkedong.com/2018/01/03/openresty-ppt/index.html">
+<meta property="og:site_name" content="minkedong&#39;s  home">
+<meta property="og:description" content="在面对大量用户访问、高并发请求方面，基本的解决方案集中在这样几个环节：使用高性能的服务器、高性能的数据库、高效率的编程语言、还有高性能的Web容器、负载均衡等等今天我们就要介绍一种解决高并发场景的方案：Openresty">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://dsp-download.lddengine.cn/philipblog/openresty-nginx-lua.png">
+<meta property="og:image" content="http://dsp-download.lddengine.cn/philipblog/developing-openresty-framework-6-638.jpg">
+<meta property="og:image" content="http://dsp-download.lddengine.cn/philipblog/companys.jpg">
+<meta property="og:image" content="http://dsp-download.lddengine.cn/philipblog/ngx_lua_module.png">
+<meta property="og:image" content="http://dsp-download.lddengine.cn/philipblog/demotime.jpg">
+<meta property="article:published_time" content="2018-01-03T07:16:29.000Z">
+<meta property="article:modified_time" content="2021-09-01T15:53:38.034Z">
+<meta property="article:author" content="minkedong">
+<meta property="article:tag" content="openresty">
+<meta property="article:tag" content="nginx">
+<meta property="article:tag" content="lua">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://dsp-download.lddengine.cn/philipblog/openresty-nginx-lua.png">
+
+
+<link rel="canonical" href="http://blog.minkedong.com/2018/01/03/openresty-ppt/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://blog.minkedong.com/2018/01/03/openresty-ppt/","path":"2018/01/03/openresty-ppt/","title":"OpenResty在高并发场景的应用"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>OpenResty在高并发场景的应用 | minkedong's  home</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">minkedong's  home</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="home fa-fw"></i>首页</a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A6%82%E8%A7%88"><span class="nav-number">1.</span> <span class="nav-text">概览</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFOpenresty"><span class="nav-number">2.</span> <span class="nav-text">什么是Openresty</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="nav-number">3.</span> <span class="nav-text">应用场景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Ngx-lua%E6%A8%A1%E5%9D%97"><span class="nav-number">4.</span> <span class="nav-text">Ngx_lua模块</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Demo-Time"><span class="nav-number">5.</span> <span class="nav-text">Demo Time</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">6.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-overview">
+            <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="minkedong"
+      src="http://dsp-download.lddengine.cn/philipblog/houseilei.jpg">
+  <p class="site-author-name" itemprop="name">minkedong</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">23</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author site-overview-item animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/minkedong" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;minkedong" rel="noopener" target="_blank"><i class="github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.minkedong.com/2018/01/03/openresty-ppt/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="http://dsp-download.lddengine.cn/philipblog/houseilei.jpg">
+      <meta itemprop="name" content="minkedong">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="minkedong's  home">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          OpenResty在高并发场景的应用
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2018-01-03 15:16:29" itemprop="dateCreated datePublished" datetime="2018-01-03T15:16:29+08:00">2018-01-03</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">更新于</span>
+        <time title="修改时间：2021-09-01 23:53:38" itemprop="dateModified" datetime="2021-09-01T23:53:38+08:00">2021-09-01</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%BC%96%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">编程</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <blockquote>
+<p>在面对大量用户访问、高并发请求方面，基本的解决方案集中在这样几个环节：<br>使用高性能的服务器、高性能的数据库、高效率的编程语言、还有高性能的Web容器、负载均衡等等<br>今天我们就要介绍一种解决高并发场景的方案：Openresty</p>
+</blockquote>
+<span id="more"></span>
+
+<h2 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h2><p><strong>1. 什么是Openresty</strong><br><strong>2. 应用场景</strong><br><strong>3. Ngx_lua模块</strong><br><strong>4. Demo Time</strong><br><strong>5. 总结</strong></p>
+<h2 id="什么是Openresty"><a href="#什么是Openresty" class="headerlink" title="什么是Openresty"></a>什么是Openresty</h2><p>**1.**OpenResty是一个基于 Nginx 与 Lua 的高性能 Web 平台，其内部集成了大量精良的 Lua 库、第三方模块以及大多数的依赖项。用于方便地搭建能够处理超高并发、扩展性极高的动态 Web 应用、Web 服务和动态网关。<br><img src="http://dsp-download.lddengine.cn/philipblog/openresty-nginx-lua.png" alt="mahua"></p>
+<ul>
+<li>Nginx：高性能、高并发的Web服务器，拥有丰富的第三方模块。</li>
+<li>Lua：一种轻量级、可嵌入式的脚本语言。</li>
+<li>Ngx_lua：Nginx的一个模块，将Lua嵌入到Nginx中，这样就可以使用Lua编写应用脚本，部署到Nginx中运行，即Nginx变成了一个Web容器，这样开发人员就可以使用Lua语言开发高性能Web应用了。</li>
+</ul>
+<p>**2.**这里有个很有意思的地方是，nginx、lua、openresty分别产生于俄罗斯、巴西、中国，都属于”金砖国家”。<br><img src="http://dsp-download.lddengine.cn/philipblog/developing-openresty-framework-6-638.jpg" alt="mahua"></p>
+<h2 id="应用场景"><a href="#应用场景" class="headerlink" title="应用场景"></a>应用场景</h2><ul>
+<li><strong>web应用：</strong>进行一些业务逻辑处理，甚至进行耗CPU的模板渲染，一般流程：mysql/redis/http获取数据、业务处理、产生JSON/XML/模板渲染内容，比如京东的列表页/商品详情页</li>
+<li><strong>接入网关：</strong>实现如数据校验前置、缓存前置、数据过滤、API请求聚合、AB测试、灰度发布、降级、监控等功能，比如京东的交易大Nginx节点、无线部门正在开发的无线网关、单品页统一服务、实时价格、动态服务</li>
+<li><strong>Web防火墙：</strong>可以进行IP/URL/UserAgent/Referer黑名单、限流等功能</li>
+<li><strong>缓存服务器：</strong>可以对响应内容进行缓存，减少到后端的请求，从而提升性能</li>
+<li>……</li>
+</ul>
+<p>用户案例：<br><img src="http://dsp-download.lddengine.cn/philipblog/companys.jpg" alt="mahua"></p>
+<h2 id="Ngx-lua模块"><a href="#Ngx-lua模块" class="headerlink" title="Ngx_lua模块"></a>Ngx_lua模块</h2><p><img src="http://dsp-download.lddengine.cn/philipblog/ngx_lua_module.png" alt="mahua"><br>主要包含四个执行阶段：初始化阶段、rewrite/access阶段、内容生成阶段、log阶段</p>
+<ul>
+<li><strong>init_by_lua:</strong> Nginx收到HUP信号并开始重新加载配置文件时执行，可以用来在服务启动时注册“Lua全局变量”或预加载“Lua模块”（不推荐，全局变量的使用有性能损失并会带来全局命名污染），也可以初始化lua_shared_dict共享内存</li>
+<li><strong>init_worker_by_lua:</strong> Nginx worker进程启动时执行，这个指令经常被用来创建执行定时器(例如：后端服务健康检查任务)</li>
+<li><strong>set_by_lua:</strong> 设置nginx变量, 注意这里面的代码是阻塞的，不要加入耗时处理逻辑</li>
+<li><strong>rewrite_by_lua:</strong> 转发、重定向、缓存等功能</li>
+<li><strong>access_by_lua:</strong> IP准入、接口权限等情况集中处理</li>
+<li><strong>content_by_lua:</strong> 内容处理程序, 不要将本指令和其他内容处理程序指令放到同一个location中</li>
+<li><strong>balancer_by_lua:</strong> 配置在upstream中，实现上游服务器的负载均衡</li>
+<li><strong>header_filter_by_lua:</strong> 应答HTTP header处理</li>
+<li><strong>body_filter_by_lua:</strong> 输出内容过滤器</li>
+<li><strong>log_by_lua:</strong> 在log请求处理阶段执行，它不替代当前access的日志，而是在其前面执行</li>
+</ul>
+<h2 id="Demo-Time"><a href="#Demo-Time" class="headerlink" title="Demo Time"></a>Demo Time</h2><p><img src="http://dsp-download.lddengine.cn/philipblog/demotime.jpg" alt="mahua"><br><strong>基础环境</strong></p>
+<ul>
+<li>系统：Centos7</li>
+<li>内存：2G</li>
+<li>cpu：2</li>
+<li>虚拟机ip：192.168.50.100</li>
+</ul>
+<p><strong>安装openresty</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">sudo yum -y update</span><br><span class="line">sudo useradd nginx -s /sbin/nologin -M</span><br><span class="line">wget https://openresty.org/download/openresty-1.11.2.1.tar.gz</span><br><span class="line">tar -zxvf openresty-1.11.2.1.tar.gz</span><br><span class="line"><span class="built_in">cd</span> openresty-1.11.2.1</span><br><span class="line">./configure --user=nginx --group=nginx --with-http_stub_status_module</span><br><span class="line">gmake</span><br><span class="line">sudo gmake install</span><br><span class="line">sudo ln -s /usr/<span class="built_in">local</span>/openresty/nginx/sbin/nginx /usr/sbin/nginx</span><br></pre></td></tr></table></figure>
+
+<p><strong>clone demo代码</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /opt</span><br><span class="line">git <span class="built_in">clone</span> https://gitee.com/minkedong/helloopenresty.git</span><br></pre></td></tr></table></figure>
+
+<p><strong>step1：hello world</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step1</span><br><span class="line">sudo nginx -p /opt/helloopenresty</span><br></pre></td></tr></table></figure>
+
+<p><strong>step2：log、终止流程</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step2</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure>
+
+<p><strong>step3：init_by_lua</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step3</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure>
+
+<p><strong>step4：init_worker_by_lua</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step4</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure>
+
+<p><strong>step4-1：init_worker_by_lua</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step4-1</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure>
+
+<p><strong>step5：set_by_lua</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step5</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure>
+
+<p><strong>step6：rewrite_by_lua</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step6</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure>
+
+<p><strong>step7：access_by_lua</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step7</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure>
+
+<p><strong>step8：header_filter_by_lua</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step8</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure>
+
+<p><strong>step9：balancer_by_lua</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step9</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure>
+
+<p><strong>step10：内部调用</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step10</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure>
+
+<p><strong>step11：lua-resty-redis库</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step11</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure>
+
+<p><strong>step12：ab测试</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout step12</span><br><span class="line">sudo nginx -p /opt/helloopenresty -s reload</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p><strong>ab测试：</strong><br>1.准备：<br>更改内核参数，参考文章 <a href="http://blog.minkedong.com/2017/09/01/elk-openresty/">实时日志分析之二：Openresty</a> 其中的“优化linux内核参数”部分<br>log日志加buffer，人为错误日志去掉（由于其不带写缓冲）</p>
+<p>2.说明：<br>吞吐率（Requests per second）<br>用户平均请求等待时间（Time per request）= 处理完成所有请求数所花费的时间/（总请求数/并发用户数）<br>服务器平均请求等待时间（Time per request:across all concurrent requests）= 处理完成所有请求数所花费的时间/总请求数</p>
+<p>3.执行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ab -c 500 -n 10000 -k http://192.168.50.100/hello</span><br><span class="line">ab -c 1000 -n 10000 -k http://192.168.50.100/hello</span><br><span class="line">ab -c 500 -n 10000 -k http://192.168.50.100/redis</span><br><span class="line">ab -c 1000 -n 10000 -k http://192.168.50.100/redis</span><br><span class="line">ab -c 500 -n 10000 -k http://192.168.50.100/test1</span><br><span class="line">ab -c 1000 -n 10000 -k http://192.168.50.100/test1</span><br></pre></td></tr></table></figure>
+
+<p><strong>建议</strong></p>
+<ul>
+<li>系统防火墙</li>
+<li>系统内核参数</li>
+<li>nginx worker进程权限</li>
+<li>lua index从1开始</li>
+<li>未定义的lua变量不会报错，默认为nil</li>
+<li>lua table操作谨慎</li>
+<li>第三方库谨慎对待阻塞库</li>
+</ul>
+<p><strong>QQ群：</strong><br>124613000</p>
+<p><strong>学习资料：</strong><br>OpenResty最佳实践：<a target="_blank" rel="noopener" href="https://moonbingbing.gitbooks.io/openresty-best-practices/content/">https://moonbingbing.gitbooks.io/openresty-best-practices/content/</a><br>nginx-lua-module：<a target="_blank" rel="noopener" href="https://github.com/iresty/nginx-lua-module-zh-wiki">https://github.com/iresty/nginx-lua-module-zh-wiki</a><br>awesome-resty：<a target="_blank" rel="noopener" href="https://github.com/bungle/awesome-resty">https://github.com/bungle/awesome-resty</a><br>Lua5.2：<a target="_blank" rel="noopener" href="http://www.lua.org/manual/5.2/">http://www.lua.org/manual/5.2/</a><br>OpenResty官网：<a target="_blank" rel="noopener" href="http://openresty.org/cn/">http://openresty.org/cn/</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/openresty/" rel="tag"># openresty</a>
+              <a href="/tags/nginx/" rel="tag"># nginx</a>
+              <a href="/tags/lua/" rel="tag"># lua</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2017/09/06/elk-grafana/" rel="prev" title="实时日志分析之七：Grafana">
+                  <i class="fa fa-chevron-left"></i> 实时日志分析之七：Grafana
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2018/02/23/consul-rabbitmq/" rel="next" title="rabbitmq集群 && consul自动发现">
+                  rabbitmq集群 && consul自动发现 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 2016 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">minkedong</span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/mist/" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/schemes/muse.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

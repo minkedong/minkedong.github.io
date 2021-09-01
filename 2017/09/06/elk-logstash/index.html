@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="mask-icon" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css" integrity="sha256-mUZM63G8m73Mcidfrv5E+Y61y7a12O5mW4ezU3bxqW4=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.minkedong.com","root":"/","images":"/images","scheme":"Mist","version":"8.7.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<meta name="description" content="logstash是一款强大的数据处理工具，它可以实现数据传输，格式处理，格式化输出，还有强大的插件功能，常用于日志处理官方文档：https:&#x2F;&#x2F;www.elastic.co&#x2F;guide&#x2F;en&#x2F;logstash&#x2F;current&#x2F;index.html中文文档：https:&#x2F;&#x2F;kibana.logstash.es&#x2F;content&#x2F;logstash&#x2F;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="实时日志分析之六：Logstash">
+<meta property="og:url" content="http://blog.minkedong.com/2017/09/06/elk-logstash/index.html">
+<meta property="og:site_name" content="minkedong&#39;s  home">
+<meta property="og:description" content="logstash是一款强大的数据处理工具，它可以实现数据传输，格式处理，格式化输出，还有强大的插件功能，常用于日志处理官方文档：https:&#x2F;&#x2F;www.elastic.co&#x2F;guide&#x2F;en&#x2F;logstash&#x2F;current&#x2F;index.html中文文档：https:&#x2F;&#x2F;kibana.logstash.es&#x2F;content&#x2F;logstash&#x2F;">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2017-09-06T10:17:29.000Z">
+<meta property="article:modified_time" content="2021-09-01T15:29:04.585Z">
+<meta property="article:author" content="minkedong">
+<meta property="article:tag" content="logstash">
+<meta property="article:tag" content="elk">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://blog.minkedong.com/2017/09/06/elk-logstash/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://blog.minkedong.com/2017/09/06/elk-logstash/","path":"2017/09/06/elk-logstash/","title":"实时日志分析之六：Logstash"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>实时日志分析之六：Logstash | minkedong's  home</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">minkedong's  home</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="home fa-fw"></i>首页</a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83"><span class="nav-number">1.</span> <span class="nav-text">环境</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85"><span class="nav-number">2.</span> <span class="nav-text">安装</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE"><span class="nav-number">3.</span> <span class="nav-text">配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E6%B5%8B%E8%AF%95"><span class="nav-number">4.</span> <span class="nav-text">运行测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%AD%A3%E5%BC%8F%E5%90%AF%E5%8A%A8"><span class="nav-number">5.</span> <span class="nav-text">正式启动</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%91%E6%8E%A7"><span class="nav-number">6.</span> <span class="nav-text">监控</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-overview">
+            <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="minkedong"
+      src="http://dsp-download.lddengine.cn/philipblog/houseilei.jpg">
+  <p class="site-author-name" itemprop="name">minkedong</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">23</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author site-overview-item animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/minkedong" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;minkedong" rel="noopener" target="_blank"><i class="github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.minkedong.com/2017/09/06/elk-logstash/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="http://dsp-download.lddengine.cn/philipblog/houseilei.jpg">
+      <meta itemprop="name" content="minkedong">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="minkedong's  home">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          实时日志分析之六：Logstash
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2017-09-06 18:17:29" itemprop="dateCreated datePublished" datetime="2017-09-06T18:17:29+08:00">2017-09-06</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">更新于</span>
+        <time title="修改时间：2021-09-01 23:29:04" itemprop="dateModified" datetime="2021-09-01T23:29:04+08:00">2021-09-01</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%BC%96%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">编程</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <blockquote>
+<p>logstash是一款强大的数据处理工具，它可以实现数据传输，格式处理，格式化输出，还有强大的插件功能，常用于日志处理<br>官方文档：<a target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/logstash/current/index.html">https://www.elastic.co/guide/en/logstash/current/index.html</a><br>中文文档：<a target="_blank" rel="noopener" href="https://kibana.logstash.es/content/logstash/">https://kibana.logstash.es/content/logstash/</a></p>
+</blockquote>
+<span id="more"></span>
+
+<p>下面我们使用logstash消费kafka中的内容output到elasticsearch集群中去</p>
+<h2 id="环境"><a href="#环境" class="headerlink" title="环境"></a>环境</h2><ul>
+<li>系统：centos7</li>
+<li>ip：192.168.2.233</li>
+</ul>
+<p>** 优化linux内核参数 **<br>参考文章 <a href="http://blog.minkedong.com/2017/09/01/elk-openresty/">实时日志分析之二：Openresty</a> 其中的“优化linux内核参数”部分</p>
+<p>** 安装JDK **</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo yum install java-1.8.0-openjdk  java-1.8.0-openjdk-devel</span><br></pre></td></tr></table></figure>
+<p>sudo vim /etc/profile 加入如下内容（注意多加了一个环境变量“JAVACMD”）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">JAVA_HOME=/usr/lib/jvm/java</span><br><span class="line">JRE_HOME=<span class="variable">$JAVA_HOME</span>/jre</span><br><span class="line">CLASS_PATH=.:<span class="variable">$JAVA_HOME</span>/lib/dt.jar:<span class="variable">$JAVA_HOME</span>/lib/tools.jar:<span class="variable">$JRE_HOME</span>/lib</span><br><span class="line">JAVACMD=/usr/bin/java</span><br><span class="line">PATH=<span class="variable">$PATH</span>:<span class="variable">$JAVA_HOME</span>/bin:<span class="variable">$JRE_HOME</span>/bin</span><br><span class="line"><span class="built_in">export</span> JAVA_HOME JRE_HOME CLASS_PATH JAVACMD PATH</span><br></pre></td></tr></table></figure>
+<p>载入profile环境</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> /etc/profile</span><br></pre></td></tr></table></figure>
+<p>验证是否安装成功</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -version</span><br></pre></td></tr></table></figure>
+
+<p>** 设置host **</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo hostnamectl set-hostname logstash01</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch</span><br></pre></td></tr></table></figure>
+<p>sudo vim /etc/yum.repos.d/logstash.repo 加入如下内容</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[logstash-5.x]</span><br><span class="line">name=Elastic repository <span class="keyword">for</span> 5.x packages</span><br><span class="line">baseurl=https://artifacts.elastic.co/packages/5.x/yum</span><br><span class="line">gpgcheck=1</span><br><span class="line">gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch</span><br><span class="line">enabled=1</span><br><span class="line">autorefresh=1</span><br><span class="line"><span class="built_in">type</span>=rpm-md</span><br></pre></td></tr></table></figure>
+<p>安装</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo yum install logstash</span><br></pre></td></tr></table></figure>
+<p>设置logstash开机启动</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl <span class="built_in">enable</span> logstash</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>安装文件说明：<br>配置目录：/etc/logstash/<br>备注：自定义配置放在“/etc/logstash/conf.d”下，且必须以.conf结尾<br>log目录：/var/log/logstash/<br>bin目录：/usr/share/logstash/bin  （测试的时候可以用这里面的logstash手动启动，如：sudo /usr/share/logstash/bin/logstash -f /etc/logstash/conf.d/test.conf）<br>elaticsearch模板目录：/usr/share/logstash/vendor/bundle/jruby/1.9/gems/logstash-output-elasticsearch-7.3.7-java/lib/logstash/outputs/elasticsearch</p>
+</li>
+<li><p>插件管理：<br>官方可用插件可以查看：<a target="_blank" rel="noopener" href="https://github.com/logstash-plugins/">https://github.com/logstash-plugins/</a></p>
+</li>
+</ul>
+<ol>
+<li>插件帮助：sudo /usr/share/logstash/bin/logstash-plugin –help</li>
+<li>插件列表：sudo /usr/share/logstash/bin/logstash-plugin list</li>
+<li>插件安装：sudo /usr/share/logstash/bin/logstash-plugin install logstash-output-mongodb</li>
+</ol>
+<h2 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h2><p>sudo vim /etc/hosts 加入如下内容（kafka集群的host, 参考文章<a href="http://blog.minkedong.com/2017/09/04/elk-kafka/">实时日志分析之三：Kafka</a>）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">192.168.2.230 kafka01</span><br><span class="line">192.168.2.231 kafka02</span><br><span class="line">192.168.2.232 kafka03</span><br></pre></td></tr></table></figure>
+
+<p>sudo vim /etc/logstash/jvm.options 修改如下参数，来控制JVM heap size（一般设置为系统内存的一半）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-Xms2g</span><br><span class="line">-Xmx2g</span><br></pre></td></tr></table></figure>
+
+<p>sudo vim /etc/logstash/logstash.yml 配置如下内容</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">path.data: /var/lib/logstash</span><br><span class="line"><span class="comment"># 最好设置为跟cpu核心数量相同</span></span><br><span class="line">pipeline.workers: 2</span><br><span class="line">pipeline.output.workers: 2</span><br><span class="line"><span class="comment"># Logstash 会攒到 pipeline.batch.size 条数据才一次性发送出去（根据业务的量慎重考虑此值，一般在线上系统需要调整此值，实现最大的吞吐量）</span></span><br><span class="line">pipeline.batch.size: 20000</span><br><span class="line"><span class="comment"># 每个 Logstash pipeline 线程，在打包批量日志的时候，最多等待几毫秒。默认是 5 ms（此设置一般不需要更改）</span></span><br><span class="line">pipeline.batch.delay: 5</span><br><span class="line">path.config: /etc/logstash/conf.d</span><br><span class="line">http.host: <span class="string">&quot;192.168.2.233&quot;</span></span><br><span class="line">log.level: info</span><br><span class="line">path.logs: /var/<span class="built_in">log</span>/logstash</span><br></pre></td></tr></table></figure>
+
+<p>sudo vim /etc/logstash/conf.d/click_to_elk.conf 配置如下内容（具体的filter规则，请查看logstash文档，这是logstash的核心内容）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line">input &#123;</span><br><span class="line">    kafka &#123;</span><br><span class="line">        codec =&gt; <span class="string">&quot;json&quot;</span></span><br><span class="line">        topics =&gt; [<span class="string">&quot;we_click_access&quot;</span>]</span><br><span class="line">        bootstrap_servers =&gt; <span class="string">&quot;kafka01:9092,kafka02:9092,kafka03:9092&quot;</span></span><br><span class="line">        group_id =&gt; <span class="string">&quot;we_click_access__group&quot;</span></span><br><span class="line">        client_id =&gt; <span class="string">&quot;logstash01&quot;</span></span><br><span class="line">        max_poll_records =&gt; <span class="string">&quot;20000&quot;</span> <span class="comment"># 使用poll取数据，每次最多取max_poll_records个</span></span><br><span class="line">        poll_timeout_ms =&gt; 1000 <span class="comment"># 使用poll取数据，每poll_timeout_ms拿一次数据</span></span><br><span class="line">        auto_offset_reset =&gt; <span class="string">&quot;latest&quot;</span></span><br><span class="line">        request_timeout_ms =&gt; <span class="string">&quot;40000&quot;</span></span><br><span class="line">        consumer_threads =&gt; 3 <span class="comment"># consumer的线程数，最好跟topic的分区数相等效率最高(默认1)</span></span><br><span class="line">        enable_auto_commit =&gt; <span class="string">&quot;true&quot;</span></span><br><span class="line">        exclude_internal_topics =&gt; <span class="string">&quot;true&quot;</span></span><br><span class="line">        fetch_max_wait_ms =&gt; <span class="string">&quot;500&quot;</span></span><br><span class="line">        fetch_min_bytes =&gt; <span class="string">&quot;1&quot;</span></span><br><span class="line">        heartbeat_interval_ms =&gt; <span class="string">&quot;3000&quot;</span></span><br><span class="line">        max_partition_fetch_bytes =&gt; <span class="string">&quot;1048576&quot;</span></span><br><span class="line">        reconnect_backoff_ms =&gt; <span class="string">&quot;100&quot;</span></span><br><span class="line">        retry_backoff_ms =&gt; <span class="string">&quot;100&quot;</span></span><br><span class="line">        session_timeout_ms =&gt; <span class="string">&quot;30000&quot;</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">filter &#123;</span><br><span class="line">    grok &#123;</span><br><span class="line">        match =&gt; &#123;</span><br><span class="line">            message =&gt; <span class="string">&#x27;%&#123;IPORHOST:remote_addr&#125; - %&#123;NOTSPACE&#125; \[%&#123;HTTPDATE:timestamp&#125;\] &quot;(?:%&#123;WORD&#125; %&#123;NOTSPACE:request&#125;(?: HTTP/%&#123;NUMBER&#125;)?|%&#123;DATA&#125;)&quot; %&#123;NUMBER:status&#125; (?:%&#123;NUMBER&#125;|-) &quot;%&#123;DATA:referer&#125;&quot; &quot;%&#123;DATA&#125;&quot; &quot;%&#123;DATA&#125;&quot; &quot;%&#123;DATA:wesub&#125;&quot;&#x27;</span></span><br><span class="line">        &#125;</span><br><span class="line">        remove_field =&gt; [<span class="string">&quot;message&quot;</span>, <span class="string">&quot;source&quot;</span>, <span class="string">&quot;offset&quot;</span>, <span class="string">&quot;beat&quot;</span>, <span class="string">&quot;input_type&quot;</span>]</span><br><span class="line">    &#125;</span><br><span class="line">    ruby &#123;</span><br><span class="line">        init =&gt; <span class="string">&quot;@kname = [&#x27;url_path&#x27;,&#x27;url_args&#x27;]&quot;</span></span><br><span class="line">        code =&gt; <span class="string">&quot;</span></span><br><span class="line"><span class="string">            if event.get(&#x27;referer&#x27;) == &#x27;-&#x27;</span></span><br><span class="line"><span class="string">                event.set(&#x27;referer&#x27;, 0)</span></span><br><span class="line"><span class="string">            else</span></span><br><span class="line"><span class="string">                event.set(&#x27;referer&#x27;, 1)</span></span><br><span class="line"><span class="string">            end</span></span><br><span class="line"><span class="string">            new_event = LogStash::Event.new(Hash[@kname.zip(event.get(&#x27;request&#x27;).split(&#x27;?&#x27;))])</span></span><br><span class="line"><span class="string">            new_event.remove(&#x27;@timestamp&#x27;)</span></span><br><span class="line"><span class="string">            event.append(new_event)</span></span><br><span class="line"><span class="string">        &quot;</span></span><br><span class="line">    &#125;</span><br><span class="line">    kv &#123;</span><br><span class="line">        prefix =&gt; <span class="string">&quot;&quot;</span></span><br><span class="line">        <span class="built_in">source</span> =&gt; <span class="string">&quot;url_args&quot;</span></span><br><span class="line">        field_split =&gt; <span class="string">&quot;&amp;&quot;</span></span><br><span class="line">        include_keys =&gt; [ <span class="string">&quot;pubid&quot;</span>, <span class="string">&quot;campid&quot;</span>, <span class="string">&quot;gaid&quot;</span> ]</span><br><span class="line">        remove_field =&gt; [ <span class="string">&quot;url_args&quot;</span>, <span class="string">&quot;url_path&quot;</span>, <span class="string">&quot;request&quot;</span> ]</span><br><span class="line">    &#125;</span><br><span class="line">    date &#123;</span><br><span class="line">        match =&gt; [ <span class="string">&quot;timestamp&quot;</span> , <span class="string">&quot;dd/MMM/YYYY:HH:mm:ss Z&quot;</span> ]</span><br><span class="line">        remove_field =&gt; [ <span class="string">&quot;timestamp&quot;</span> ]</span><br><span class="line">    &#125;</span><br><span class="line">    dissect &#123;</span><br><span class="line">        mapping =&gt; &#123;</span><br><span class="line">            <span class="string">&quot;wesub&quot;</span> =&gt; <span class="string">&#x27;%&#123;wesub_clickid&#125;:,%&#123;?wesub_campid&#125;:,%&#123;?wesub_pubid&#125;:,%&#123;wesub_offer_geo&#125;:,%&#123;wesub_payout&#125;:,%&#123;wesub_publisher_payout&#125;:,%&#123;wesub_source&#125;:,%&#123;?wesub_sub&#125;::,%&#123;?wesub_sub2&#125;::,%&#123;?wesub_sub3&#125;&#x27;</span></span><br><span class="line">        &#125;</span><br><span class="line">        remove_field =&gt; [<span class="string">&quot;wesub&quot;</span>]</span><br><span class="line">    &#125;</span><br><span class="line">    mutate &#123;</span><br><span class="line">        convert =&gt; &#123;</span><br><span class="line">            <span class="string">&quot;status&quot;</span> =&gt; <span class="string">&quot;integer&quot;</span></span><br><span class="line">            <span class="string">&quot;pubid&quot;</span> =&gt; <span class="string">&quot;integer&quot;</span></span><br><span class="line">            <span class="string">&quot;campid&quot;</span> =&gt; <span class="string">&quot;integer&quot;</span></span><br><span class="line">            <span class="string">&quot;wesub_payout&quot;</span> =&gt; <span class="string">&quot;float&quot;</span></span><br><span class="line">            <span class="string">&quot;wesub_publisher_payout&quot;</span> =&gt; <span class="string">&quot;float&quot;</span></span><br><span class="line">            <span class="string">&quot;wesub_source&quot;</span> =&gt; <span class="string">&quot;integer&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">output&#123;</span><br><span class="line">    stdout&#123;</span><br><span class="line">        codec=&gt;rubydebug</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="运行测试"><a href="#运行测试" class="headerlink" title="运行测试"></a>运行测试</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo /usr/share/logstash/bin/logstash -f /etc/logstash/conf.d/click_to_elk.conf</span><br></pre></td></tr></table></figure>
+<p>这时候访问前面的openresty<br>访问“<a target="_blank" rel="noopener" href="http://192.168.2.236/v1/ad/click/?pubid=123&amp;campid=456&amp;gaid=abcdefg%E2%80%9D">http://192.168.2.236/v1/ad/click/?pubid=123&amp;campid=456&amp;gaid=abcdefg”</a><br>logstash会输出类似如下内容</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">               <span class="string">&quot;remote_addr&quot;</span> =&gt; <span class="string">&quot;192.168.2.182&quot;</span>,</span><br><span class="line">                   <span class="string">&quot;referer&quot;</span> =&gt; 0,</span><br><span class="line">             <span class="string">&quot;wesub_clickid&quot;</span> =&gt; <span class="string">&quot;3fe63613-83b1-474b-bd29-2d21d8709980&quot;</span>,</span><br><span class="line">           <span class="string">&quot;wesub_offer_geo&quot;</span> =&gt; <span class="string">&quot;XY&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;campid&quot;</span> =&gt; 456,</span><br><span class="line">                      <span class="string">&quot;gaid&quot;</span> =&gt; <span class="string">&quot;abcdefg&quot;</span>,</span><br><span class="line">    <span class="string">&quot;wesub_publisher_payout&quot;</span> =&gt; 0.252,</span><br><span class="line">                      <span class="string">&quot;type&quot;</span> =&gt; <span class="string">&quot;we_click_access&quot;</span>,</span><br><span class="line">              <span class="string">&quot;wesub_source&quot;</span> =&gt; 2,</span><br><span class="line">                <span class="string">&quot;@timestamp&quot;</span> =&gt; 2017-09-06T09:14:33.000Z,</span><br><span class="line">              <span class="string">&quot;wesub_payout&quot;</span> =&gt; 0.252,</span><br><span class="line">                  <span class="string">&quot;@version&quot;</span> =&gt; <span class="string">&quot;1&quot;</span>,</span><br><span class="line">                     <span class="string">&quot;pubid&quot;</span> =&gt; 123,</span><br><span class="line">                    <span class="string">&quot;status&quot;</span> =&gt; 200</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>至此我们就完成了从openresty日志内容</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">192.168.2.182 - - [06/Sep/2017:09:14:33 +0000] <span class="string">&quot;GET /v1/ad/click/?pubid=123&amp;campid=456&amp;gaid=abcdefg HTTP/1.1&quot;</span> 200 43 <span class="string">&quot;-&quot;</span> <span class="string">&quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.101 Safari/537.36&quot;</span> <span class="string">&quot;-&quot;</span> <span class="string">&quot;3fe63613-83b1-474b-bd29-2d21d8709980:,12345:,45678:,XY:,0.252:,0.252:,2:,sub1::sub2,::,sub3&quot;</span></span><br></pre></td></tr></table></figure>
+<p>一直到logstash转换后输出上面的内容 (此处应有雷鸣般的掌声！)</p>
+<p>** 下面我们只需要把logstash的输出内容配置为输出到elasticsearch集群即可 **<br>sudo vim /etc/logstash/conf.d/click_to_elk.conf 修改output的内容为</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">output&#123;</span><br><span class="line">    <span class="keyword">if</span> [<span class="built_in">type</span>] == <span class="string">&quot;we_click_access&quot;</span> &#123;</span><br><span class="line">        elasticsearch &#123;</span><br><span class="line">            hosts =&gt; [<span class="string">&quot;192.168.2.234:9200&quot;</span>, <span class="string">&quot;192.168.2.235:9200&quot;</span>, <span class="string">&quot;192.168.2.236:9200&quot;</span>]</span><br><span class="line">            index =&gt; <span class="string">&quot;logstash-click-%&#123;+YYYY.MM.dd&#125;&quot;</span></span><br><span class="line">            document_type =&gt; <span class="string">&quot;%&#123;type&#125;&quot;</span></span><br><span class="line">            template =&gt; <span class="string">&quot;/etc/logstash/elasticsearch-template-es5x-click.json&quot;</span></span><br><span class="line">            template_name =&gt; <span class="string">&quot;elasticsearch-template-es5x-click&quot;</span></span><br><span class="line">            template_overwrite =&gt; <span class="literal">true</span></span><br><span class="line">            http_compression =&gt; <span class="literal">true</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>设置elasticsearch的模板文件<br>sudo vim /etc/logstash/elasticsearch-template-es5x-click.json 加入如下内容<br>备注：线上环境可以调整number_of_shards、number_of_replicas、index.refresh_interval设置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="string">&quot;template&quot;</span> : <span class="string">&quot;logstash-click*&quot;</span>,</span><br><span class="line">  <span class="string">&quot;version&quot;</span> : 50001,</span><br><span class="line">  <span class="string">&quot;settings&quot;</span> : &#123;</span><br><span class="line">    <span class="string">&quot;number_of_shards&quot;</span> : 3,</span><br><span class="line">    <span class="string">&quot;number_of_replicas&quot;</span> : 0,</span><br><span class="line">    <span class="string">&quot;index.refresh_interval&quot;</span> : <span class="string">&quot;60s&quot;</span></span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="string">&quot;mappings&quot;</span> : &#123;</span><br><span class="line">    <span class="string">&quot;_default_&quot;</span> : &#123;</span><br><span class="line">      <span class="string">&quot;_all&quot;</span> : &#123;<span class="string">&quot;enabled&quot;</span> : <span class="literal">true</span>, <span class="string">&quot;norms&quot;</span> : <span class="literal">false</span>&#125;,</span><br><span class="line">      <span class="string">&quot;dynamic_templates&quot;</span> : [ &#123;</span><br><span class="line">        <span class="string">&quot;message_field&quot;</span> : &#123;</span><br><span class="line">          <span class="string">&quot;path_match&quot;</span> : <span class="string">&quot;message&quot;</span>,</span><br><span class="line">          <span class="string">&quot;match_mapping_type&quot;</span> : <span class="string">&quot;string&quot;</span>,</span><br><span class="line">          <span class="string">&quot;mapping&quot;</span> : &#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span> : <span class="string">&quot;text&quot;</span>,</span><br><span class="line">            <span class="string">&quot;norms&quot;</span> : <span class="literal">false</span></span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;, &#123;</span><br><span class="line">        <span class="string">&quot;string_fields&quot;</span> : &#123;</span><br><span class="line">          <span class="string">&quot;match&quot;</span> : <span class="string">&quot;*&quot;</span>,</span><br><span class="line">          <span class="string">&quot;match_mapping_type&quot;</span> : <span class="string">&quot;string&quot;</span>,</span><br><span class="line">          <span class="string">&quot;mapping&quot;</span> : &#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span> : <span class="string">&quot;text&quot;</span>, <span class="string">&quot;norms&quot;</span> : <span class="literal">false</span></span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125; ],</span><br><span class="line">      <span class="string">&quot;properties&quot;</span> : &#123;</span><br><span class="line">        <span class="string">&quot;@timestamp&quot;</span>: &#123; <span class="string">&quot;type&quot;</span>: <span class="string">&quot;date&quot;</span>, <span class="string">&quot;include_in_all&quot;</span>: <span class="literal">false</span> &#125;,</span><br><span class="line">        <span class="string">&quot;@version&quot;</span>: &#123; <span class="string">&quot;type&quot;</span>: <span class="string">&quot;keyword&quot;</span>, <span class="string">&quot;include_in_all&quot;</span>: <span class="literal">false</span> &#125;,</span><br><span class="line">        <span class="string">&quot;geoip&quot;</span>  : &#123;</span><br><span class="line">          <span class="string">&quot;dynamic&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">          <span class="string">&quot;properties&quot;</span> : &#123;</span><br><span class="line">            <span class="string">&quot;ip&quot;</span>: &#123; <span class="string">&quot;type&quot;</span>: <span class="string">&quot;ip&quot;</span> &#125;,</span><br><span class="line">            <span class="string">&quot;location&quot;</span> : &#123; <span class="string">&quot;type&quot;</span> : <span class="string">&quot;geo_point&quot;</span> &#125;,</span><br><span class="line">            <span class="string">&quot;latitude&quot;</span> : &#123; <span class="string">&quot;type&quot;</span> : <span class="string">&quot;half_float&quot;</span> &#125;,</span><br><span class="line">            <span class="string">&quot;longitude&quot;</span> : &#123; <span class="string">&quot;type&quot;</span> : <span class="string">&quot;half_float&quot;</span> &#125;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;campid&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;long&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;referer&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;long&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;wesub_payout&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;half_float&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;wesub_publisher_payout&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;half_float&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;remote_addr&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;norms&quot;</span>: <span class="literal">false</span>,</span><br><span class="line">            <span class="string">&quot;fields&quot;</span>: &#123;</span><br><span class="line">                <span class="string">&quot;keyword&quot;</span>: &#123;</span><br><span class="line">                    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;text&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;gaid&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;norms&quot;</span>: <span class="literal">false</span>,</span><br><span class="line">            <span class="string">&quot;fields&quot;</span>: &#123;</span><br><span class="line">                <span class="string">&quot;keyword&quot;</span>: &#123;</span><br><span class="line">                    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;text&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;wesub_source&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;long&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;pubid&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;long&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;type&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;norms&quot;</span>: <span class="literal">false</span>,</span><br><span class="line">            <span class="string">&quot;fields&quot;</span>: &#123;</span><br><span class="line">                <span class="string">&quot;keyword&quot;</span>: &#123;</span><br><span class="line">                    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;text&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;status&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;long&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;wesub_offer_geo&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;norms&quot;</span>: <span class="literal">false</span>,</span><br><span class="line">            <span class="string">&quot;fields&quot;</span>: &#123;</span><br><span class="line">                <span class="string">&quot;keyword&quot;</span>: &#123;</span><br><span class="line">                    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;text&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;wesub_clickid&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;norms&quot;</span>: <span class="literal">false</span>,</span><br><span class="line">            <span class="string">&quot;fields&quot;</span>: &#123;</span><br><span class="line">                <span class="string">&quot;keyword&quot;</span>: &#123;</span><br><span class="line">                    <span class="string">&quot;type&quot;</span>: <span class="string">&quot;keyword&quot;</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;text&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="正式启动"><a href="#正式启动" class="headerlink" title="正式启动"></a>正式启动</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo service logstash start</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="监控"><a href="#监控" class="headerlink" title="监控"></a>监控</h2><p>查看logstash运行状态，包括input多少数据及使用的时间、各个filter使用的时间、output多少数据及使用的时间等等</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -XGET <span class="string">&#x27;192.168.2.233:9600/_node/stats?pretty&#x27;</span> <span class="comment">#（可以看到logstash各种状态及吞吐量）</span></span><br></pre></td></tr></table></figure>
+
+<p>由于我在logstash的filter中使用了grok，其效率较低，可能成为瓶颈，如果发现filter使用的时间较长，可以优先考虑优化filter中的配置，也可以考虑增加logstash节点试试<br>如果发现output到elasticsearch占用较长时间，导致整体吞吐量上不去，就要考虑优化elasticsearch方面的配置</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/logstash/" rel="tag"># logstash</a>
+              <a href="/tags/elk/" rel="tag"># elk</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2017/09/06/elk-elasticsearch/" rel="prev" title="实时日志分析之五：Elasticsearch">
+                  <i class="fa fa-chevron-left"></i> 实时日志分析之五：Elasticsearch
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2017/09/06/elk-grafana/" rel="next" title="实时日志分析之七：Grafana">
+                  实时日志分析之七：Grafana <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 2016 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">minkedong</span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/mist/" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/schemes/muse.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

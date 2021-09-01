@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico">
+  <link rel="mask-icon" href="http://dsp-download.lddengine.cn/philipblog/monkey.ico" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css" integrity="sha256-mUZM63G8m73Mcidfrv5E+Y61y7a12O5mW4ezU3bxqW4=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"blog.minkedong.com","root":"/","images":"/images","scheme":"Mist","version":"8.7.1","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+<meta name="description" content="工作中需要构建rabbitmq集群，前置”服务发现、高可用、LoadBalance”可以使用haproxy+keepalived，但是这种方案还是比较单一，consul在此功能上显得更加全面，consul基于go语言开发，轻量级，用于实现分布式系统的服务发现与配置。这里我们就用consul和rabbitmq集群的组合实现rabbitmq服务的”自动发现、高可用、LoadBalance”（可以以同">
+<meta property="og:type" content="article">
+<meta property="og:title" content="rabbitmq集群 &amp;&amp; consul自动发现">
+<meta property="og:url" content="http://blog.minkedong.com/2018/02/23/consul-rabbitmq/index.html">
+<meta property="og:site_name" content="minkedong&#39;s  home">
+<meta property="og:description" content="工作中需要构建rabbitmq集群，前置”服务发现、高可用、LoadBalance”可以使用haproxy+keepalived，但是这种方案还是比较单一，consul在此功能上显得更加全面，consul基于go语言开发，轻量级，用于实现分布式系统的服务发现与配置。这里我们就用consul和rabbitmq集群的组合实现rabbitmq服务的”自动发现、高可用、LoadBalance”（可以以同">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://dsp-download.lddengine.cn/philipblog/blog_consul.png">
+<meta property="article:published_time" content="2018-02-23T14:50:00.000Z">
+<meta property="article:modified_time" content="2021-09-01T15:50:42.398Z">
+<meta property="article:author" content="minkedong">
+<meta property="article:tag" content="rabbitmq">
+<meta property="article:tag" content="consul">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://dsp-download.lddengine.cn/philipblog/blog_consul.png">
+
+
+<link rel="canonical" href="http://blog.minkedong.com/2018/02/23/consul-rabbitmq/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://blog.minkedong.com/2018/02/23/consul-rabbitmq/","path":"2018/02/23/consul-rabbitmq/","title":"rabbitmq集群 && consul自动发现"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>rabbitmq集群 && consul自动发现 | minkedong's  home</title>
+  
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">minkedong's  home</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="home fa-fw"></i>首页</a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A6%82%E8%A7%88"><span class="nav-number">1.</span> <span class="nav-text">概览</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#rabbitmq%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA"><span class="nav-number">2.</span> <span class="nav-text">rabbitmq集群搭建</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#consul-server%E8%8A%82%E7%82%B9"><span class="nav-number">3.</span> <span class="nav-text">consul server节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#consul-client%E8%8A%82%E7%82%B9"><span class="nav-number">4.</span> <span class="nav-text">consul client节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%85%8D%E7%BD%AErabbitmq%E8%8A%82%E7%82%B9%E5%8F%91%E7%8E%B0%E6%9C%8D%E5%8A%A1"><span class="nav-number">5.</span> <span class="nav-text">配置rabbitmq节点发现服务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%A2%E6%88%B7%E7%AB%AF%E9%85%8D%E7%BD%AE"><span class="nav-number">6.</span> <span class="nav-text">客户端配置</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-overview">
+            <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="minkedong"
+      src="http://dsp-download.lddengine.cn/philipblog/houseilei.jpg">
+  <p class="site-author-name" itemprop="name">minkedong</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">23</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author site-overview-item animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/minkedong" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;minkedong" rel="noopener" target="_blank"><i class="github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.minkedong.com/2018/02/23/consul-rabbitmq/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="http://dsp-download.lddengine.cn/philipblog/houseilei.jpg">
+      <meta itemprop="name" content="minkedong">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="minkedong's  home">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          rabbitmq集群 && consul自动发现
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2018-02-23 22:50:00" itemprop="dateCreated datePublished" datetime="2018-02-23T22:50:00+08:00">2018-02-23</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">更新于</span>
+        <time title="修改时间：2021-09-01 23:50:42" itemprop="dateModified" datetime="2021-09-01T23:50:42+08:00">2021-09-01</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E7%BC%96%E7%A8%8B/" itemprop="url" rel="index"><span itemprop="name">编程</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <blockquote>
+<p>工作中需要构建rabbitmq集群，前置”服务发现、高可用、LoadBalance”可以使用haproxy+keepalived，但是这种方案还是比较单一，consul在此功能上显得更加全面，consul基于go语言开发，轻量级，用于实现分布式系统的服务发现与配置。这里我们就用consul和rabbitmq集群的组合实现rabbitmq服务的”自动发现、高可用、LoadBalance”（可以以同样的方式实现consul+redis、consul+mysql、consul+apigateway等等）。如有疑问请联系我，大家共同学习！</p>
+</blockquote>
+<span id="more"></span>
+
+
+<h2 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h2><p><strong>1.基础环境</strong></p>
+<ul>
+<li>ip:192.168.50.201    hostname:consulserver01    system:centos7</li>
+<li>ip:192.168.50.202    hostname:consulserver02    system:centos7</li>
+<li>ip:192.168.50.203    hostname:consulserver03    system:centos7</li>
+<li>ip:192.168.50.204    hostname:consulclient01    system:centos7</li>
+<li>ip:192.168.50.205    hostname:consulclient02    system:centos7</li>
+<li>ip:192.168.50.206    hostname:consulclient03    system:centos7</li>
+</ul>
+<p><strong>2.全局图</strong><br><img src="http://dsp-download.lddengine.cn/philipblog/blog_consul.png" alt="mahua"></p>
+<h2 id="rabbitmq集群搭建"><a href="#rabbitmq集群搭建" class="headerlink" title="rabbitmq集群搭建"></a>rabbitmq集群搭建</h2><p><strong>1.更改hosts文件</strong><br>在consulclient01、consulclient02、consulclient03机器分别运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/hosts</span><br></pre></td></tr></table></figure>
+<p>加入如下内容</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">192.168.50.204 consulclient01</span><br><span class="line">192.168.50.205 consulclient02</span><br><span class="line">192.168.50.206 consulclient03</span><br></pre></td></tr></table></figure>
+
+<p><strong>2.安装rabbitmq</strong><br>在consulclient01、consulclient02、consulclient03机器分别运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo yum -y install erlang</span><br><span class="line">wget http://www.rabbitmq.com/releases/rabbitmq-server/v3.6.6/rabbitmq-server-3.6.6-1.el7.noarch.rpm</span><br><span class="line">sudo yum -y install rabbitmq-server-3.6.6-1.el7.noarch.rpm</span><br></pre></td></tr></table></figure>
+
+<p><strong>2.配置rabbitmq</strong><br>在consulclient01运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/rabbitmq/rabbitmq.config</span><br></pre></td></tr></table></figure>
+<p>加入如下内容（这里根据实际机器情况调整各个参数值）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">    &#123;</span><br><span class="line">        rabbit, [</span><br><span class="line">            &#123;tcp_listeners, [&#123;<span class="string">&quot;127.0.0.1&quot;</span>, 5672&#125;, &#123;<span class="string">&quot;192.168.50.204&quot;</span>, 5672&#125;]&#125;,</span><br><span class="line">            &#123;cluster_partition_handling, pause_minority&#125;,</span><br><span class="line">            &#123;log_levels, [&#123;connection, info&#125;, &#123;channel, info&#125;]&#125;,</span><br><span class="line"></span><br><span class="line">            &#123;vm_memory_high_watermark, 0.5&#125;,</span><br><span class="line">            &#123;vm_memory_high_watermark_paging_ratio, 0.5&#125;,</span><br><span class="line">            &#123;memory_monitor_interval, 2500&#125;,</span><br><span class="line"></span><br><span class="line">            &#123;disk_free_limit, <span class="string">&quot;300MB&quot;</span>&#125;,</span><br><span class="line">            %% Set the default AMQP heartbeat delay (<span class="keyword">in</span> seconds).</span><br><span class="line">            %%</span><br><span class="line">            &#123;heartbeat, 60&#125;,</span><br><span class="line"></span><br><span class="line">            %% Set the max permissible size of an AMQP frame (<span class="keyword">in</span> bytes).</span><br><span class="line">            %%</span><br><span class="line">            &#123;frame_max, 131072&#125;,</span><br><span class="line"></span><br><span class="line">            %% Set the max frame size the server will accept before connection</span><br><span class="line">            %% tuning occurs</span><br><span class="line">            %%</span><br><span class="line">            &#123;initial_frame_max, 4096&#125;,</span><br><span class="line"></span><br><span class="line">            %% Set the max permissible number of channels per connection.</span><br><span class="line">            %% 0 means <span class="string">&quot;no limit&quot;</span>.</span><br><span class="line">            %%</span><br><span class="line">            &#123;channel_max, 512&#125;</span><br><span class="line">        ]</span><br><span class="line">    &#125;</span><br><span class="line">].</span><br></pre></td></tr></table></figure>
+<p>在consulclient02运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/rabbitmq/rabbitmq.config</span><br></pre></td></tr></table></figure>
+<p>加入如下内容（这里根据实际机器情况调整各个参数值）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">    &#123;</span><br><span class="line">        rabbit, [</span><br><span class="line">            &#123;tcp_listeners, [&#123;<span class="string">&quot;127.0.0.1&quot;</span>, 5672&#125;, &#123;<span class="string">&quot;192.168.50.205&quot;</span>, 5672&#125;]&#125;,</span><br><span class="line">            &#123;cluster_partition_handling, pause_minority&#125;,</span><br><span class="line">            &#123;log_levels, [&#123;connection, info&#125;, &#123;channel, info&#125;]&#125;,</span><br><span class="line"></span><br><span class="line">            &#123;vm_memory_high_watermark, 0.5&#125;,</span><br><span class="line">            &#123;vm_memory_high_watermark_paging_ratio, 0.5&#125;,</span><br><span class="line">            &#123;memory_monitor_interval, 2500&#125;,</span><br><span class="line"></span><br><span class="line">            &#123;disk_free_limit, <span class="string">&quot;300MB&quot;</span>&#125;,</span><br><span class="line">            %% Set the default AMQP heartbeat delay (<span class="keyword">in</span> seconds).</span><br><span class="line">            %%</span><br><span class="line">            &#123;heartbeat, 60&#125;,</span><br><span class="line"></span><br><span class="line">            %% Set the max permissible size of an AMQP frame (<span class="keyword">in</span> bytes).</span><br><span class="line">            %%</span><br><span class="line">            &#123;frame_max, 131072&#125;,</span><br><span class="line"></span><br><span class="line">            %% Set the max frame size the server will accept before connection</span><br><span class="line">            %% tuning occurs</span><br><span class="line">            %%</span><br><span class="line">            &#123;initial_frame_max, 4096&#125;,</span><br><span class="line"></span><br><span class="line">            %% Set the max permissible number of channels per connection.</span><br><span class="line">            %% 0 means <span class="string">&quot;no limit&quot;</span>.</span><br><span class="line">            %%</span><br><span class="line">            &#123;channel_max, 512&#125;</span><br><span class="line">        ]</span><br><span class="line">    &#125;</span><br><span class="line">].</span><br></pre></td></tr></table></figure>
+<p>在consulclient03运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/rabbitmq/rabbitmq.config</span><br></pre></td></tr></table></figure>
+<p>加入如下内容（这里根据实际机器情况调整各个参数值）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">    &#123;</span><br><span class="line">        rabbit, [</span><br><span class="line">            &#123;tcp_listeners, [&#123;<span class="string">&quot;127.0.0.1&quot;</span>, 5672&#125;, &#123;<span class="string">&quot;192.168.50.206&quot;</span>, 5672&#125;]&#125;,</span><br><span class="line">            &#123;cluster_partition_handling, pause_minority&#125;,</span><br><span class="line">            &#123;log_levels, [&#123;connection, info&#125;, &#123;channel, info&#125;]&#125;,</span><br><span class="line"></span><br><span class="line">            &#123;vm_memory_high_watermark, 0.5&#125;,</span><br><span class="line">            &#123;vm_memory_high_watermark_paging_ratio, 0.5&#125;,</span><br><span class="line">            &#123;memory_monitor_interval, 2500&#125;,</span><br><span class="line"></span><br><span class="line">            &#123;disk_free_limit, <span class="string">&quot;300MB&quot;</span>&#125;,</span><br><span class="line">            %% Set the default AMQP heartbeat delay (<span class="keyword">in</span> seconds).</span><br><span class="line">            %%</span><br><span class="line">            &#123;heartbeat, 60&#125;,</span><br><span class="line"></span><br><span class="line">            %% Set the max permissible size of an AMQP frame (<span class="keyword">in</span> bytes).</span><br><span class="line">            %%</span><br><span class="line">            &#123;frame_max, 131072&#125;,</span><br><span class="line"></span><br><span class="line">            %% Set the max frame size the server will accept before connection</span><br><span class="line">            %% tuning occurs</span><br><span class="line">            %%</span><br><span class="line">            &#123;initial_frame_max, 4096&#125;,</span><br><span class="line"></span><br><span class="line">            %% Set the max permissible number of channels per connection.</span><br><span class="line">            %% 0 means <span class="string">&quot;no limit&quot;</span>.</span><br><span class="line">            %%</span><br><span class="line">            &#123;channel_max, 512&#125;</span><br><span class="line">        ]</span><br><span class="line">    &#125;</span><br><span class="line">].</span><br></pre></td></tr></table></figure>
+
+<p><strong>3.启动rabbitmq，启用管理界面</strong><br>在consulclient01、consulclient02、consulclient03机器分别运行<br>启动rabbitmq</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo service rabbitmq-server start</span><br></pre></td></tr></table></figure>
+<p>启动管理页面</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rabbitmq-plugins <span class="built_in">enable</span> rabbitmq_management</span><br></pre></td></tr></table></figure>
+<p>设置开机启动</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl <span class="built_in">enable</span> rabbitmq-server</span><br></pre></td></tr></table></figure>
+<p>查看rabbitmq节点状态信息</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rabbitmqctl status</span><br></pre></td></tr></table></figure>
+<p>访问管理界面<br><a target="_blank" rel="noopener" href="http://192.168.50.204:15672/">http://192.168.50.204:15672</a><br><a target="_blank" rel="noopener" href="http://192.168.50.205:15672/">http://192.168.50.205:15672</a><br><a target="_blank" rel="noopener" href="http://192.168.50.206:15672/">http://192.168.50.206:15672</a></p>
+<p><strong>4.配置rabbitmq集群</strong><br>把consulclient01机器上的/var/lib/rabbitmq/.erlang.cookie文件同步到consulclient02、consulclient03机器上，注意ower和权限配置保持一致</p>
+<p>重新启动运行consulclient02、consulclient03节点</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo service rabbitmq-server restart</span><br></pre></td></tr></table></figure>
+
+<p>将 consulclient02、consulclient03 与 consulclient01 组成集群（在consulclient02、consulclient03节点上运行下面的命令）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo rabbitmqctl stop_app</span><br><span class="line">sudo rabbitmqctl join_cluster rabbit@consulclient01    <span class="comment"># (默认都是磁盘节点，如果要使自己成为内存节点，则加上--ram参数)</span></span><br><span class="line">sudo rabbitmqctl start_app</span><br></pre></td></tr></table></figure>
+
+<p>查看集群状态</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rabbitmqctl cluster_status</span><br></pre></td></tr></table></figure>
+
+<p><strong>5.配置策略: 镜像模式（可选）</strong><br>在任一集群节点上运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rabbitmqctl set_policy -p / ha-allqueue <span class="string">&quot;^&quot;</span> <span class="string">&#x27;&#123;&quot;ha-mode&quot;:&quot;all&quot;&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+<p>备注：这行命令在名称为”/“的vhost上创建了一个策略，策略名称为 ha-allqueue，策略模式为 all 即复制到所有节点，包含新增节点，策略正则表达式为“^”表示所有匹配所有队列名称</p>
+<p><strong>6.一般操作</strong><br>新增用户</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rabbitmqctl  add_user  jack abc123abc</span><br></pre></td></tr></table></figure>
+
+<p>设置用户角色(administrator，monitoring，policymaker，management)</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rabbitmqctl  set_user_tags  jack  administrator</span><br></pre></td></tr></table></figure>
+<p>备注：这两步操作完成后，就可以使用用户来登录rabbitmq管理界面，在里面可以进行方便的其他各种操作</p>
+<h2 id="consul-server节点"><a href="#consul-server节点" class="headerlink" title="consul server节点"></a>consul server节点</h2><p><strong>1.安装</strong><br>在consulserver01、consulserver02、consulserver03机器分别运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">wget https://releases.hashicorp.com/consul/1.0.6/consul_1.0.6_linux_amd64.zip</span><br><span class="line">unzip consul_1.0.6_linux_amd64.zip</span><br><span class="line">sudo mv consul /usr/bin/</span><br></pre></td></tr></table></figure>
+
+<p><strong>2.配置</strong><br>创建目录，在consulserver01、consulserver02、consulserver03机器分别运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sudo mkdir -p /etc/consul.d/</span><br><span class="line">sudo mkdir -p /data/consul/</span><br><span class="line">sudo mkdir -p /data/consul/shell</span><br><span class="line">sudo mkdir -p /var/<span class="built_in">log</span>/consul</span><br><span class="line">sudo chown -R vagrant:vagrant /data/consul      <span class="comment"># 注意这里的用户名使用你机器上真正的用户名</span></span><br><span class="line">sudo chown -R vagrant:vagrant /var/<span class="built_in">log</span>/consul   <span class="comment"># 注意这里的用户名使用你机器上真正的用户名</span></span><br></pre></td></tr></table></figure>
+
+<p>在consulserver01节点上运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/consul.d/server.json</span><br></pre></td></tr></table></figure>
+<p>加入如下配置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="string">&quot;data_dir&quot;</span>: <span class="string">&quot;/data/consul&quot;</span>,</span><br><span class="line">  <span class="string">&quot;datacenter&quot;</span>: <span class="string">&quot;dc1&quot;</span>,</span><br><span class="line">  <span class="string">&quot;log_level&quot;</span>: <span class="string">&quot;INFO&quot;</span>,</span><br><span class="line">  <span class="string">&quot;server&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="string">&quot;bootstrap_expect&quot;</span>: 2,</span><br><span class="line">  <span class="string">&quot;bind_addr&quot;</span>: <span class="string">&quot;192.168.50.201&quot;</span>,</span><br><span class="line">  <span class="string">&quot;client_addr&quot;</span>: <span class="string">&quot;192.168.50.201&quot;</span>,</span><br><span class="line">  <span class="string">&quot;ports&quot;</span>: &#123;</span><br><span class="line">    <span class="string">&quot;dns&quot;</span>: 53</span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="string">&quot;recursors&quot;</span>: [<span class="string">&quot;8.8.8.8&quot;</span>, <span class="string">&quot;8.8.4.4&quot;</span>],</span><br><span class="line">  <span class="string">&quot;ui&quot;</span>:<span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在consulserver02节点上运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/consul.d/server.json</span><br></pre></td></tr></table></figure>
+<p>加入如下配置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="string">&quot;data_dir&quot;</span>: <span class="string">&quot;/data/consul&quot;</span>,</span><br><span class="line">  <span class="string">&quot;datacenter&quot;</span>: <span class="string">&quot;dc1&quot;</span>,</span><br><span class="line">  <span class="string">&quot;log_level&quot;</span>: <span class="string">&quot;INFO&quot;</span>,</span><br><span class="line">  <span class="string">&quot;server&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="string">&quot;bootstrap_expect&quot;</span>: 2,</span><br><span class="line">  <span class="string">&quot;bind_addr&quot;</span>: <span class="string">&quot;192.168.50.202&quot;</span>,</span><br><span class="line">  <span class="string">&quot;client_addr&quot;</span>: <span class="string">&quot;192.168.50.202&quot;</span>,</span><br><span class="line">  <span class="string">&quot;start_join&quot;</span>: [<span class="string">&quot;192.168.50.201&quot;</span>, <span class="string">&quot;192.168.50.203&quot;</span>],</span><br><span class="line">  <span class="string">&quot;retry_join&quot;</span>: [<span class="string">&quot;192.168.50.201&quot;</span>, <span class="string">&quot;192.168.50.203&quot;</span>],</span><br><span class="line">  <span class="string">&quot;ports&quot;</span>: &#123;</span><br><span class="line">    <span class="string">&quot;dns&quot;</span>: 53</span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="string">&quot;recursors&quot;</span>: [<span class="string">&quot;8.8.8.8&quot;</span>, <span class="string">&quot;8.8.4.4&quot;</span>],</span><br><span class="line">  <span class="string">&quot;ui&quot;</span>:<span class="literal">false</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在consulserver03节点上运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/consul.d/server.json</span><br></pre></td></tr></table></figure>
+<p>加入如下配置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="string">&quot;data_dir&quot;</span>: <span class="string">&quot;/data/consul&quot;</span>,</span><br><span class="line">  <span class="string">&quot;datacenter&quot;</span>: <span class="string">&quot;dc1&quot;</span>,</span><br><span class="line">  <span class="string">&quot;log_level&quot;</span>: <span class="string">&quot;INFO&quot;</span>,</span><br><span class="line">  <span class="string">&quot;server&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="string">&quot;bootstrap_expect&quot;</span>: 2,</span><br><span class="line">  <span class="string">&quot;bind_addr&quot;</span>: <span class="string">&quot;192.168.50.203&quot;</span>,</span><br><span class="line">  <span class="string">&quot;client_addr&quot;</span>: <span class="string">&quot;192.168.50.203&quot;</span>,</span><br><span class="line">  <span class="string">&quot;start_join&quot;</span>: [<span class="string">&quot;192.168.50.201&quot;</span>, <span class="string">&quot;192.168.50.202&quot;</span>],</span><br><span class="line">  <span class="string">&quot;retry_join&quot;</span>: [<span class="string">&quot;192.168.50.201&quot;</span>, <span class="string">&quot;192.168.50.202&quot;</span>],</span><br><span class="line">  <span class="string">&quot;ports&quot;</span>: &#123;</span><br><span class="line">    <span class="string">&quot;dns&quot;</span>: 53</span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="string">&quot;recursors&quot;</span>: [<span class="string">&quot;8.8.8.8&quot;</span>, <span class="string">&quot;8.8.4.4&quot;</span>],</span><br><span class="line">  <span class="string">&quot;ui&quot;</span>:<span class="literal">false</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>3.启动consul server</strong><br>在consulserver01、consulserver02、consulserver03机器依次运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo consul agent -config-dir=/etc/consul.d &gt;/var/<span class="built_in">log</span>/consul/consul.log 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
+<p>查看/var/log/consul/consul.log是否正常启动</p>
+<p><strong>4.更新第一个consul server节点配置</strong><br>在consulserver01节点上运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/consul.d/server.json</span><br></pre></td></tr></table></figure>
+<p>加入如下配置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="string">&quot;data_dir&quot;</span>: <span class="string">&quot;/data/consul&quot;</span>,</span><br><span class="line">  <span class="string">&quot;datacenter&quot;</span>: <span class="string">&quot;dc1&quot;</span>,</span><br><span class="line">  <span class="string">&quot;log_level&quot;</span>: <span class="string">&quot;INFO&quot;</span>,</span><br><span class="line">  <span class="string">&quot;server&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="string">&quot;bootstrap_expect&quot;</span>: 2,</span><br><span class="line">  <span class="string">&quot;bind_addr&quot;</span>: <span class="string">&quot;192.168.50.201&quot;</span>,</span><br><span class="line">  <span class="string">&quot;client_addr&quot;</span>: <span class="string">&quot;192.168.50.201&quot;</span>,</span><br><span class="line">  <span class="string">&quot;start_join&quot;</span>: [<span class="string">&quot;192.168.50.202&quot;</span>, <span class="string">&quot;192.168.50.203&quot;</span>],</span><br><span class="line">  <span class="string">&quot;retry_join&quot;</span>: [<span class="string">&quot;192.168.50.202&quot;</span>, <span class="string">&quot;192.168.50.203&quot;</span>],</span><br><span class="line">  <span class="string">&quot;ports&quot;</span>: &#123;</span><br><span class="line">    <span class="string">&quot;dns&quot;</span>: 53</span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="string">&quot;recursors&quot;</span>: [<span class="string">&quot;8.8.8.8&quot;</span>, <span class="string">&quot;8.8.4.4&quot;</span>],</span><br><span class="line">  <span class="string">&quot;ui&quot;</span>:<span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>更新此节点配置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo consul reload -http-addr=192.168.50.201:8500</span><br></pre></td></tr></table></figure>
+
+<p><strong>5.检查集群是否正常</strong><br>在任一节点上运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo consul members -http-addr=192.168.50.201:8500</span><br></pre></td></tr></table></figure>
+<p>还可以通过集群的ui管理界面来查看，地址为：<br><a target="_blank" rel="noopener" href="http://192.168.50.201:8500/ui/">http://192.168.50.201:8500/ui/</a><br><a target="_blank" rel="noopener" href="http://192.168.50.202:8500/ui/">http://192.168.50.202:8500/ui/</a><br><a target="_blank" rel="noopener" href="http://192.168.50.203:8500/ui/">http://192.168.50.203:8500/ui/</a></p>
+<p>备注：线上系统可以部署nginx服务，然后在nginx中加上basic auth，再反向代理到此管理界面，供外网访问</p>
+<h2 id="consul-client节点"><a href="#consul-client节点" class="headerlink" title="consul client节点"></a>consul client节点</h2><p><strong>1.安装</strong><br>在consulclient01、consulclient02、consulclient03机器分别运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">wget https://releases.hashicorp.com/consul/1.0.6/consul_1.0.6_linux_amd64.zip</span><br><span class="line">unzip consul_1.0.6_linux_amd64.zip</span><br><span class="line">sudo mv consul /usr/<span class="built_in">local</span>/bin/</span><br></pre></td></tr></table></figure>
+
+<p><strong>2.配置</strong><br>创建目录，在consulclient01、consulclient02、consulclient03机器分别运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sudo mkdir -p /etc/consul.d/</span><br><span class="line">sudo mkdir -p /data/consul/</span><br><span class="line">sudo mkdir -p /data/consul/shell</span><br><span class="line">sudo mkdir -p /var/<span class="built_in">log</span>/consul</span><br><span class="line">sudo chown -R vagrant:vagrant /data/consul      <span class="comment"># 注意这里的用户名使用你机器上真正的用户名</span></span><br><span class="line">sudo chown -R vagrant:vagrant /var/<span class="built_in">log</span>/consul   <span class="comment"># 注意这里的用户名使用你机器上真正的用户名</span></span><br></pre></td></tr></table></figure>
+
+<p>在consulclient01节点上运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/consul.d/client.json</span><br></pre></td></tr></table></figure>
+<p>加入如下配置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="string">&quot;data_dir&quot;</span>: <span class="string">&quot;/data/consul&quot;</span>,</span><br><span class="line">  <span class="string">&quot;datacenter&quot;</span>: <span class="string">&quot;dc1&quot;</span>,</span><br><span class="line">  <span class="string">&quot;enable_script_checks&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="string">&quot;bind_addr&quot;</span>: <span class="string">&quot;192.168.50.204&quot;</span>,</span><br><span class="line">  <span class="string">&quot;retry_join&quot;</span>: [<span class="string">&quot;192.168.50.201&quot;</span>, <span class="string">&quot;192.168.50.202&quot;</span>, <span class="string">&quot;192.168.50.203&quot;</span>],</span><br><span class="line">  <span class="string">&quot;retry_interval&quot;</span>: <span class="string">&quot;30s&quot;</span>,</span><br><span class="line">  <span class="string">&quot;rejoin_after_leave&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="string">&quot;start_join&quot;</span>: [<span class="string">&quot;192.168.50.201&quot;</span>, <span class="string">&quot;192.168.50.202&quot;</span>, <span class="string">&quot;192.168.50.203&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在consulclient02节点上运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/consul.d/client.json</span><br></pre></td></tr></table></figure>
+<p>加入如下配置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="string">&quot;data_dir&quot;</span>: <span class="string">&quot;/data/consul&quot;</span>,</span><br><span class="line">  <span class="string">&quot;datacenter&quot;</span>: <span class="string">&quot;dc1&quot;</span>,</span><br><span class="line">  <span class="string">&quot;enable_script_checks&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="string">&quot;bind_addr&quot;</span>: <span class="string">&quot;192.168.50.205&quot;</span>,</span><br><span class="line">  <span class="string">&quot;retry_join&quot;</span>: [<span class="string">&quot;192.168.50.201&quot;</span>, <span class="string">&quot;192.168.50.202&quot;</span>, <span class="string">&quot;192.168.50.203&quot;</span>],</span><br><span class="line">  <span class="string">&quot;retry_interval&quot;</span>: <span class="string">&quot;30s&quot;</span>,</span><br><span class="line">  <span class="string">&quot;rejoin_after_leave&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="string">&quot;start_join&quot;</span>: [<span class="string">&quot;192.168.50.201&quot;</span>, <span class="string">&quot;192.168.50.202&quot;</span>, <span class="string">&quot;192.168.50.203&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在consulclient03节点上运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/consul.d/client.json</span><br></pre></td></tr></table></figure>
+<p>加入如下配置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="string">&quot;data_dir&quot;</span>: <span class="string">&quot;/data/consul&quot;</span>,</span><br><span class="line">  <span class="string">&quot;datacenter&quot;</span>: <span class="string">&quot;dc1&quot;</span>,</span><br><span class="line">  <span class="string">&quot;enable_script_checks&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="string">&quot;bind_addr&quot;</span>: <span class="string">&quot;192.168.50.206&quot;</span>,</span><br><span class="line">  <span class="string">&quot;retry_join&quot;</span>: [<span class="string">&quot;192.168.50.201&quot;</span>, <span class="string">&quot;192.168.50.202&quot;</span>, <span class="string">&quot;192.168.50.203&quot;</span>],</span><br><span class="line">  <span class="string">&quot;retry_interval&quot;</span>: <span class="string">&quot;30s&quot;</span>,</span><br><span class="line">  <span class="string">&quot;rejoin_after_leave&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="string">&quot;start_join&quot;</span>: [<span class="string">&quot;192.168.50.201&quot;</span>, <span class="string">&quot;192.168.50.202&quot;</span>, <span class="string">&quot;192.168.50.203&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>3.启动consul client</strong><br>在consulclient01、consulclient02、consulclient03机器分别运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nohup consul agent -config-dir=/etc/consul.d &gt;/var/<span class="built_in">log</span>/consul/consul.log 2&gt;&amp;1 &amp;</span><br></pre></td></tr></table></figure>
+<p>查看/var/log/consul/consul.log是否正常启动</p>
+<h2 id="配置rabbitmq节点发现服务"><a href="#配置rabbitmq节点发现服务" class="headerlink" title="配置rabbitmq节点发现服务"></a>配置rabbitmq节点发现服务</h2><p><strong>1.配置节点发现服务</strong><br>在consulclient01节点上运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/consul.d/rabbitmq.json</span><br></pre></td></tr></table></figure>
+<p>加入如下配置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="string">&quot;services&quot;</span>: [</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="string">&quot;name&quot;</span>: <span class="string">&quot;rabbitmq&quot;</span>,</span><br><span class="line">      <span class="string">&quot;tags&quot;</span>: [</span><br><span class="line">        <span class="string">&quot;rabbitmq&quot;</span></span><br><span class="line">      ],</span><br><span class="line">      <span class="string">&quot;address&quot;</span>: <span class="string">&quot;192.168.50.204&quot;</span>,</span><br><span class="line">      <span class="string">&quot;port&quot;</span>: 5672,</span><br><span class="line">      <span class="string">&quot;checks&quot;</span>: [</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="string">&quot;args&quot;</span>: [<span class="string">&quot;/data/consul/shell/check_rabbitmq.sh&quot;</span>],</span><br><span class="line">          <span class="string">&quot;interval&quot;</span>: <span class="string">&quot;15s&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">      ]</span><br><span class="line">    &#125;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在consulclient02节点上运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/consul.d/rabbitmq.json</span><br></pre></td></tr></table></figure>
+<p>加入如下配置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="string">&quot;services&quot;</span>: [</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="string">&quot;name&quot;</span>: <span class="string">&quot;rabbitmq&quot;</span>,</span><br><span class="line">      <span class="string">&quot;tags&quot;</span>: [</span><br><span class="line">        <span class="string">&quot;rabbitmq&quot;</span></span><br><span class="line">      ],</span><br><span class="line">      <span class="string">&quot;address&quot;</span>: <span class="string">&quot;192.168.50.205&quot;</span>,</span><br><span class="line">      <span class="string">&quot;port&quot;</span>: 5672,</span><br><span class="line">      <span class="string">&quot;checks&quot;</span>: [</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="string">&quot;args&quot;</span>: [<span class="string">&quot;/data/consul/shell/check_rabbitmq.sh&quot;</span>],</span><br><span class="line">          <span class="string">&quot;interval&quot;</span>: <span class="string">&quot;15s&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">      ]</span><br><span class="line">    &#125;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在consulclient03节点上运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/consul.d/rabbitmq.json</span><br></pre></td></tr></table></figure>
+<p>加入如下配置</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="string">&quot;services&quot;</span>: [</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="string">&quot;name&quot;</span>: <span class="string">&quot;rabbitmq&quot;</span>,</span><br><span class="line">      <span class="string">&quot;tags&quot;</span>: [</span><br><span class="line">        <span class="string">&quot;rabbitmq&quot;</span></span><br><span class="line">      ],</span><br><span class="line">      <span class="string">&quot;address&quot;</span>: <span class="string">&quot;192.168.50.206&quot;</span>,</span><br><span class="line">      <span class="string">&quot;port&quot;</span>: 5672,</span><br><span class="line">      <span class="string">&quot;checks&quot;</span>: [</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="string">&quot;args&quot;</span>: [<span class="string">&quot;/data/consul/shell/check_rabbitmq.sh&quot;</span>],</span><br><span class="line">          <span class="string">&quot;interval&quot;</span>: <span class="string">&quot;15s&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">      ]</span><br><span class="line">    &#125;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>2.配置检测rabbitmq脚本</strong><br>在consulclient01、consulclient02、consulclient03机器分别运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /data/consul/shell/check_rabbitmq.sh</span><br></pre></td></tr></table></figure>
+<p>加入如下内容</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line">status=`sudo /usr/sbin/rabbitmqctl node_health_check`</span><br><span class="line">health=`sudo /usr/sbin/rabbitmqctl node_health_check |grep -Ec <span class="string">&#x27;Health check passed&#x27;</span>`</span><br><span class="line"><span class="built_in">echo</span> <span class="variable">$status</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> [ <span class="variable">$health</span> -ne 1 ]</span><br><span class="line"><span class="keyword">then</span></span><br><span class="line">    <span class="built_in">exit</span> 2</span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+<p>加上可执行权限</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo chmod a+x /data/consul/shell/check_rabbitmq.sh</span><br></pre></td></tr></table></figure>
+
+<p><strong>3.consul client重新加载配置</strong><br>在各个节点上运行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">consul reload -http-addr=127.0.0.1:8500</span><br><span class="line">consul reload -http-addr=127.0.0.1:8500</span><br><span class="line">consul reload -http-addr=127.0.0.1:8500</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="客户端配置"><a href="#客户端配置" class="headerlink" title="客户端配置"></a>客户端配置</h2><ul>
+<li>客户端需要如何连接rabbitmq服务呢，下面我们在客户端机器上指定dns解析服务器，来使用consul的dns解析，连接到rabbitmq集群.（consul提供了dns解析服务，如果上面的操作都没问题的话，consul已经把”rabbitmq.service.consul”解析到了consulclient01、consulclient02、consulclient03这三台机器）</li>
+</ul>
+<p><strong>1.更改resolv配置</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/resolv.conf</span><br></pre></td></tr></table></figure>
+<p>在头部加入</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nameserver 192.168.50.201</span><br><span class="line">nameserver 192.168.50.202</span><br><span class="line">nameserver 192.168.50.203</span><br></pre></td></tr></table></figure>
+
+<p><strong>2.测试</strong><br>这里就可以使用consul的域名解析服务了<br>备注：默认可以使用域名rabbitmq.service.consul或者rabbitmq.rabbitmq.service.consul，如果在上面的service定义中定义了多个tag，那么可以使用多个tag的域名，示例：tagname.rabbitmq.service.consul</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">nslookup rabbitmq.service.consul</span><br><span class="line">nslookup rabbitmq.rabbitmq.service.consul</span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ping rabbitmq.service.consul</span><br><span class="line">ping rabbitmq.rabbitmq.service.consul</span><br></pre></td></tr></table></figure>
+
+<p>至此，客户端就可以使用rabbitmq.service.consul或rabbitmq.rabbitmq.service.consul域名来访问rabbitmq集群。<br>并且如果rabbitmq集群有节点减少或增加，都不需要变动客户端代码。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/rabbitmq/" rel="tag"># rabbitmq</a>
+              <a href="/tags/consul/" rel="tag"># consul</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2018/01/03/openresty-ppt/" rel="prev" title="OpenResty在高并发场景的应用">
+                  <i class="fa fa-chevron-left"></i> OpenResty在高并发场景的应用
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2018/05/11/docker/" rel="next" title="业务docker化改造">
+                  业务docker化改造 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 2016 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">minkedong</span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/mist/" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/schemes/muse.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
